@@ -1,11 +1,153 @@
 const express = require('express');
 const router = express.Router();
-const { Maintenance, Equipment, User } = require('../models');
 const { Op } = require('sequelize');
 
-// GET all maintenance records with optional filtering and pagination
+// Import models with error handling
+let Maintenance, Equipment, User;
+
+try {
+    const models = require('../models');
+    Maintenance = models.Maintenance || require('../models/Maintenance');
+    Equipment = models.Equipment;
+    User = models.User;
+} catch (error) {
+    console.error('Error importing models:', error);
+    Maintenance = require('../models/Maintenance');
+    try {
+        Equipment = require('../models/Equipment');
+        User = require('../models/User');
+    } catch (e) {
+        console.log('Some models not found, continuing without associations');
+    }
+}
+
+// Test route
+router.get('/test', (req, res) => {
+    console.log('🔧 Maintenance test endpoint hit');
+    res.json({
+        success: true,
+        message: 'Maintenance API is working!',
+        timestamp: new Date().toISOString(),
+        availableEndpoints: {
+            getAll: 'GET /api/maintenance',
+            getById: 'GET /api/maintenance/:id',
+            create: 'POST /api/maintenance',
+            update: 'PUT /api/maintenance/:id',
+            delete: 'DELETE /api/maintenance/:id',
+            stats: 'GET /api/maintenance/stats/summary',
+            upcoming: 'GET /api/maintenance/upcoming/week',
+            overdue: 'GET /api/maintenance/overdue/list'
+        }
+    });
+});
+
+// GET maintenance statistics
+router.get('/stats/summary', async (req, res) => {
+    try {
+        console.log('🔧 Fetching maintenance statistics');
+
+        const [scheduled, in_progress, completed, cancelled, overdue] = await Promise.all([
+            Maintenance.count({ where: { status: 'scheduled' } }),
+            Maintenance.count({ where: { status: 'in_progress' } }),
+            Maintenance.count({ where: { status: 'completed' } }),
+            Maintenance.count({ where: { status: 'cancelled' } }),
+            Maintenance.count({ where: { status: 'overdue' } })
+        ]);
+
+        console.log('✅ Maintenance statistics calculated');
+
+        res.json({
+            success: true,
+            data: {
+                scheduled,
+                inProgress: in_progress,
+                completed,
+                cancelled,
+                overdue,
+                total: scheduled + in_progress + completed + cancelled + overdue
+            }
+        });
+    } catch (error) {
+        console.error('💥 Error fetching maintenance stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch maintenance statistics',
+            error: error.message
+        });
+    }
+});
+
+// GET upcoming maintenance
+router.get('/upcoming/week', async (req, res) => {
+    try {
+        console.log('🔧 Fetching upcoming maintenance');
+        const days = parseInt(req.query.days) || 7;
+
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + days);
+
+        const upcomingMaintenance = await Maintenance.findAll({
+            where: {
+                scheduled_date: {
+                    [Op.between]: [new Date(), endDate]
+                },
+                status: ['scheduled', 'in_progress']
+            },
+            order: [['scheduled_date', 'ASC']]
+        });
+
+        console.log(`✅ Found ${upcomingMaintenance.length} upcoming maintenance records`);
+
+        res.json({
+            success: true,
+            data: upcomingMaintenance
+        });
+    } catch (error) {
+        console.error('💥 Error fetching upcoming maintenance:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch upcoming maintenance',
+            error: error.message
+        });
+    }
+});
+
+// GET overdue maintenance
+router.get('/overdue/list', async (req, res) => {
+    try {
+        console.log('🔧 Fetching overdue maintenance');
+
+        const overdueMaintenance = await Maintenance.findAll({
+            where: {
+                scheduled_date: {
+                    [Op.lt]: new Date()
+                },
+                status: ['scheduled', 'in_progress']
+            },
+            order: [['scheduled_date', 'ASC']]
+        });
+
+        console.log(`✅ Found ${overdueMaintenance.length} overdue maintenance records`);
+
+        res.json({
+            success: true,
+            data: overdueMaintenance
+        });
+    } catch (error) {
+        console.error('💥 Error fetching overdue maintenance:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch overdue maintenance',
+            error: error.message
+        });
+    }
+});
+
+// GET all maintenance records
 router.get('/', async (req, res) => {
     try {
+        console.log('🔧 Fetching all maintenance records');
+
         const {
             status,
             maintenance_type,
@@ -36,29 +178,46 @@ router.get('/', async (req, res) => {
 
         const offset = (parseInt(page) - 1) * parseInt(limit);
 
-        const maintenance = await Maintenance.findAndCountAll({
-            where: whereClause,
-            include: [
-                {
-                    model: User,
-                    as: 'technician',
-                    attributes: ['id', 'name', 'email']
-                },
-                {
-                    model: User,
-                    as: 'creator',
-                    attributes: ['id', 'name', 'email']
-                },
-                {
-                    model: Equipment,
-                    as: 'equipment',
-                    attributes: ['id', 'name', 'model', 'status']
-                }
-            ],
-            order: [['scheduled_date', 'DESC']],
-            limit: parseInt(limit),
-            offset: offset
-        });
+        // Try to get with associations, fallback without if they don't exist
+        let maintenance;
+        try {
+            maintenance = await Maintenance.findAndCountAll({
+                where: whereClause,
+                include: [
+                    {
+                        model: User,
+                        as: 'technician',
+                        attributes: ['id', 'name', 'email'],
+                        required: false
+                    },
+                    {
+                        model: User,
+                        as: 'creator',
+                        attributes: ['id', 'name', 'email'],
+                        required: false
+                    },
+                    {
+                        model: Equipment,
+                        as: 'equipment',
+                        attributes: ['id', 'name', 'model', 'status'],
+                        required: false
+                    }
+                ],
+                order: [['scheduled_date', 'DESC']],
+                limit: parseInt(limit),
+                offset: offset
+            });
+        } catch (associationError) {
+            console.log('⚠️ Associations not working, fetching without them');
+            maintenance = await Maintenance.findAndCountAll({
+                where: whereClause,
+                order: [['scheduled_date', 'DESC']],
+                limit: parseInt(limit),
+                offset: offset
+            });
+        }
+
+        console.log(`✅ Found ${maintenance.count} maintenance records`);
 
         res.json({
             success: true,
@@ -71,10 +230,10 @@ router.get('/', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching maintenance:', error);
+        console.error('💥 Error fetching maintenance:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error',
+            message: 'Failed to fetch maintenance records',
             error: error.message
         });
     }
@@ -83,25 +242,34 @@ router.get('/', async (req, res) => {
 // GET maintenance by ID
 router.get('/:id', async (req, res) => {
     try {
-        const maintenance = await Maintenance.findByPk(req.params.id, {
-            include: [
-                {
-                    model: User,
-                    as: 'technician',
-                    attributes: ['id', 'name', 'email', 'phone']
-                },
-                {
-                    model: User,
-                    as: 'creator',
-                    attributes: ['id', 'name', 'email']
-                },
-                {
-                    model: Equipment,
-                    as: 'equipment',
-                    attributes: ['id', 'name', 'model', 'status', 'serial_number']
-                }
-            ]
-        });
+        const { id } = req.params;
+        console.log(`🔧 Fetching maintenance record with ID: ${id}`);
+
+        let maintenance;
+        try {
+            maintenance = await Maintenance.findByPk(id, {
+                include: [
+                    {
+                        model: User,
+                        as: 'technician',
+                        attributes: ['id', 'name', 'email', 'phone']
+                    },
+                    {
+                        model: User,
+                        as: 'creator',
+                        attributes: ['id', 'name', 'email']
+                    },
+                    {
+                        model: Equipment,
+                        as: 'equipment',
+                        attributes: ['id', 'name', 'model', 'status', 'serial_number']
+                    }
+                ]
+            });
+        } catch (associationError) {
+            console.log('⚠️ Associations not working, fetching without them');
+            maintenance = await Maintenance.findByPk(id);
+        }
 
         if (!maintenance) {
             return res.status(404).json({
@@ -110,12 +278,17 @@ router.get('/:id', async (req, res) => {
             });
         }
 
-        res.json({ success: true, data: maintenance });
+        console.log('✅ Maintenance record found');
+
+        res.json({
+            success: true,
+            data: maintenance
+        });
     } catch (error) {
-        console.error('Error fetching maintenance by ID:', error);
+        console.error('💥 Error fetching maintenance by ID:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error',
+            message: 'Failed to fetch maintenance record',
             error: error.message
         });
     }
@@ -124,6 +297,9 @@ router.get('/:id', async (req, res) => {
 // POST new maintenance record
 router.post('/', async (req, res) => {
     try {
+        console.log('🔧 Creating new maintenance record');
+        console.log('Request body:', req.body);
+
         const {
             equipment,
             type,
@@ -172,21 +348,29 @@ router.post('/', async (req, res) => {
 
         const newMaintenance = await Maintenance.create(maintenanceData);
 
-        // Fetch the created record with associations
-        const maintenanceWithAssociations = await Maintenance.findByPk(newMaintenance.id, {
-            include: [
-                {
-                    model: User,
-                    as: 'technician',
-                    attributes: ['id', 'name', 'email']
-                },
-                {
-                    model: Equipment,
-                    as: 'equipment',
-                    attributes: ['id', 'name', 'model']
-                }
-            ]
-        });
+        console.log('✅ Maintenance record created successfully:', newMaintenance.id);
+
+        // Try to fetch with associations, fallback without
+        let maintenanceWithAssociations;
+        try {
+            maintenanceWithAssociations = await Maintenance.findByPk(newMaintenance.id, {
+                include: [
+                    {
+                        model: User,
+                        as: 'technician',
+                        attributes: ['id', 'name', 'email']
+                    },
+                    {
+                        model: Equipment,
+                        as: 'equipment',
+                        attributes: ['id', 'name', 'model']
+                    }
+                ]
+            });
+        } catch (associationError) {
+            console.log('⚠️ Associations not working, returning basic record');
+            maintenanceWithAssociations = newMaintenance;
+        }
 
         res.status(201).json({
             success: true,
@@ -194,10 +378,10 @@ router.post('/', async (req, res) => {
             message: 'Maintenance record created successfully'
         });
     } catch (error) {
-        console.error('Error creating maintenance:', error);
+        console.error('💥 Error creating maintenance:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error',
+            message: 'Failed to create maintenance record',
             error: error.message
         });
     }
@@ -206,7 +390,10 @@ router.post('/', async (req, res) => {
 // PUT update maintenance record
 router.put('/:id', async (req, res) => {
     try {
-        const maintenance = await Maintenance.findByPk(req.params.id);
+        const { id } = req.params;
+        console.log(`🔧 Updating maintenance record with ID: ${id}`);
+
+        const maintenance = await Maintenance.findByPk(id);
 
         if (!maintenance) {
             return res.status(404).json({
@@ -228,21 +415,29 @@ router.put('/:id', async (req, res) => {
 
         await maintenance.update(req.body);
 
-        // Fetch updated record with associations
-        const updatedMaintenance = await Maintenance.findByPk(req.params.id, {
-            include: [
-                {
-                    model: User,
-                    as: 'technician',
-                    attributes: ['id', 'name', 'email']
-                },
-                {
-                    model: Equipment,
-                    as: 'equipment',
-                    attributes: ['id', 'name', 'model']
-                }
-            ]
-        });
+        console.log('✅ Maintenance record updated successfully');
+
+        // Try to fetch with associations, fallback without
+        let updatedMaintenance;
+        try {
+            updatedMaintenance = await Maintenance.findByPk(id, {
+                include: [
+                    {
+                        model: User,
+                        as: 'technician',
+                        attributes: ['id', 'name', 'email']
+                    },
+                    {
+                        model: Equipment,
+                        as: 'equipment',
+                        attributes: ['id', 'name', 'model']
+                    }
+                ]
+            });
+        } catch (associationError) {
+            console.log('⚠️ Associations not working, returning basic record');
+            updatedMaintenance = await Maintenance.findByPk(id);
+        }
 
         res.json({
             success: true,
@@ -250,10 +445,10 @@ router.put('/:id', async (req, res) => {
             message: 'Maintenance record updated successfully'
         });
     } catch (error) {
-        console.error('Error updating maintenance:', error);
+        console.error('💥 Error updating maintenance:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error',
+            message: 'Failed to update maintenance record',
             error: error.message
         });
     }
@@ -262,7 +457,10 @@ router.put('/:id', async (req, res) => {
 // DELETE maintenance record
 router.delete('/:id', async (req, res) => {
     try {
-        const maintenance = await Maintenance.findByPk(req.params.id);
+        const { id } = req.params;
+        console.log(`🗑️ Deleting maintenance record with ID: ${id}`);
+
+        const maintenance = await Maintenance.findByPk(id);
 
         if (!maintenance) {
             return res.status(404).json({
@@ -273,85 +471,18 @@ router.delete('/:id', async (req, res) => {
 
         await maintenance.destroy();
 
+        console.log('✅ Maintenance record deleted successfully');
+
         res.json({
             success: true,
             message: 'Maintenance record deleted successfully',
-            data: { id: req.params.id }
+            data: { id: parseInt(id) }
         });
     } catch (error) {
-        console.error('Error deleting maintenance:', error);
+        console.error('💥 Error deleting maintenance:', error);
         res.status(500).json({
             success: false,
-            message: 'Server error',
-            error: error.message
-        });
-    }
-});
-
-// GET maintenance statistics
-router.get('/stats/summary', async (req, res) => {
-    try {
-        const stats = await Maintenance.getStats();
-
-        // Get simple counts
-        const [scheduled, in_progress, completed, cancelled, overdue] = await Promise.all([
-            Maintenance.count({ where: { status: 'scheduled' } }),
-            Maintenance.count({ where: { status: 'in_progress' } }),
-            Maintenance.count({ where: { status: 'completed' } }),
-            Maintenance.count({ where: { status: 'cancelled' } }),
-            Maintenance.count({ where: { status: 'overdue' } })
-        ]);
-
-        res.json({
-            success: true,
-            data: {
-                scheduled,
-                inProgress: in_progress,
-                completed,
-                cancelled,
-                overdue,
-                total: scheduled + in_progress + completed + cancelled + overdue,
-                ...stats
-            }
-        });
-    } catch (error) {
-        console.error('Error fetching maintenance stats:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
-    }
-});
-
-// GET upcoming maintenance
-router.get('/upcoming/week', async (req, res) => {
-    try {
-        const days = req.query.days || 7;
-        const upcomingMaintenance = await Maintenance.getUpcoming(parseInt(days));
-
-        res.json({ success: true, data: upcomingMaintenance });
-    } catch (error) {
-        console.error('Error fetching upcoming maintenance:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
-            error: error.message
-        });
-    }
-});
-
-// GET overdue maintenance
-router.get('/overdue/list', async (req, res) => {
-    try {
-        const overdueMaintenance = await Maintenance.getOverdue();
-
-        res.json({ success: true, data: overdueMaintenance });
-    } catch (error) {
-        console.error('Error fetching overdue maintenance:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error',
+            message: 'Failed to delete maintenance record',
             error: error.message
         });
     }

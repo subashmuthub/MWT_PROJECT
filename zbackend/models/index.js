@@ -138,9 +138,11 @@ Maintenance.belongsTo(User, {
 
 // ============= REPORT ASSOCIATIONS =============
 // User - Report associations
+
+// Define associations
 User.hasMany(Report, {
     foreignKey: 'generated_by',
-    as: 'generatedReports'
+    as: 'reports'
 });
 
 Report.belongsTo(User, {
@@ -148,10 +150,9 @@ Report.belongsTo(User, {
     as: 'generator'
 });
 
-// User - ReportSchedule associations
 User.hasMany(ReportSchedule, {
     foreignKey: 'created_by',
-    as: 'reportSchedules'
+    as: 'schedules'
 });
 
 ReportSchedule.belongsTo(User, {
@@ -159,7 +160,6 @@ ReportSchedule.belongsTo(User, {
     as: 'creator'
 });
 
-// ReportSchedule - Report associations
 ReportSchedule.hasMany(Report, {
     foreignKey: 'schedule_id',
     as: 'reports'
@@ -167,14 +167,18 @@ ReportSchedule.hasMany(Report, {
 
 Report.belongsTo(ReportSchedule, {
     foreignKey: 'schedule_id',
-    as: 'schedule',
-    required: false
+    as: 'schedule'
 });
+// Order associations
+User.hasMany(Order, {
+    foreignKey: 'created_by',
+    as: 'orders'
+});
+
 Order.belongsTo(User, {
     foreignKey: 'created_by',
     as: 'creator'
 });
-
 // ============= EXPORT ALL MODELS =============
 module.exports = {
     sequelize,

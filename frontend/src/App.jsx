@@ -1,7 +1,7 @@
-// src/App.jsx
+// src/App.jsx - CORRECTED VERSION
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { ProtectedRoute } from './components/common/ProtectedRoute' // Fixed import
+import { ProtectedRoute } from './components/common/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -14,8 +14,14 @@ import UserManagement from './pages/UserManagement'
 import ReportsAnalytics from './pages/ReportsAnalytics'
 import MaintenanceSchedule from './pages/MaintenanceSchedule'
 import Notifications from './pages/Notifications'
-import LabManagement from './components/LabManagement' // Make sure this path is correct
+import LabManagement from './components/LabManagement'
+import Incidents from './pages/Incidents'
+import Calendar from './pages/Calendar'
+import Settings from './pages/Settings'
+import Profile from './pages/Profile'
+import Training from './pages/Training'
 import './index.css'
+import Chatbot from './components/Chatbot'
 
 // Component to handle automatic redirects
 const AuthRedirect = ({ children }) => {
@@ -51,14 +57,6 @@ function AppContent() {
             <AuthRedirect>
               <LoginPage />
             </AuthRedirect>
-          }
-        />
-        <Route
-          path="/orders"
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <OrderManagement />
-            </ProtectedRoute>
           }
         />
         <Route
@@ -107,21 +105,24 @@ function AppContent() {
         />
 
         <Route
-          path="/bookings"  // Changed from "/booking" to "/bookings"
+          path="/bookings"
           element={
             <ProtectedRoute>
               <BookingSystem />
             </ProtectedRoute>
           }
         />
+
+        {/* FIXED: Removed duplicate /orders route */}
         <Route
           path="/orders"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="admin">
               <OrderManagement />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/reports"
           element={
@@ -157,12 +158,53 @@ function AppContent() {
           }
         />
 
-        {/* Lab Management Admin Route - if you want it admin only */}
+        {/* Lab Management Admin Route */}
         <Route
           path="/lab-management-admin"
           element={
             <ProtectedRoute requiredRole="admin">
               <LabManagement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/incidents"
+          element={
+            <ProtectedRoute>
+              <Incidents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/calendar"
+          element={
+            <ProtectedRoute>
+              <Calendar />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/training"
+          element={
+            <ProtectedRoute>
+              <Training />
             </ProtectedRoute>
           }
         />
@@ -173,6 +215,9 @@ function AppContent() {
           element={<Navigate to="/dashboard" replace />}
         />
       </Routes>
+
+      {/* CHATBOT - Correctly placed OUTSIDE Routes but INSIDE the main div */}
+      <Chatbot />
     </div>
   );
 }

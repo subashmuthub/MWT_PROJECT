@@ -49,7 +49,7 @@ const Report = sequelize.define('Report', {
     },
     generated_by: {
         type: DataTypes.INTEGER,
-        allowNull: false, // Changed to false - reports should have a generator
+        allowNull: false,
         references: {
             model: 'users',
             key: 'id'
@@ -71,57 +71,7 @@ const Report = sequelize.define('Report', {
     tableName: 'reports',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    indexes: [
-        {
-            fields: ['report_type']
-        },
-        {
-            fields: ['generated_by']
-        },
-        {
-            fields: ['created_at']
-        },
-        {
-            fields: ['status']
-        }
-    ]
+    updatedAt: 'updated_at'
 });
-
-// Instance methods
-Report.prototype.markAsCompleted = async function (reportData, filePath = null, fileType = null, fileSize = null) {
-    this.status = 'completed';
-    this.report_data = reportData;
-    if (filePath) this.file_path = filePath;
-    if (fileType) this.file_type = fileType;
-    if (fileSize) this.file_size = fileSize;
-    return await this.save();
-};
-
-Report.prototype.markAsFailed = async function (error) {
-    this.status = 'failed';
-    this.summary = typeof error === 'string' ? error : error.message;
-    return await this.save();
-};
-
-// Static methods
-Report.getByType = async function (reportType, limit = 10) {
-    return await this.findAll({
-        where: { report_type: reportType },
-        order: [['created_at', 'DESC']],
-        limit
-    });
-};
-
-Report.getRecentReports = async function (userId = null, limit = 10) {
-    const whereClause = {};
-    if (userId) whereClause.generated_by = userId;
-
-    return await this.findAll({
-        where: whereClause,
-        order: [['created_at', 'DESC']],
-        limit
-    });
-};
 
 module.exports = Report;

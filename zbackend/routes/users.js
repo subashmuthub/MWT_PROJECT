@@ -1,4 +1,4 @@
-// routes/users.js
+// routes/users.js - CORRECTED VERSION
 const express = require('express');
 const router = express.Router();
 const { User } = require('../models');
@@ -6,9 +6,13 @@ const bcrypt = require('bcryptjs');
 const { requireAdmin, requireTeacherOrAdmin, authenticateToken } = require('../middleware/auth');
 const { Op } = require('sequelize');
 
+// ✅ FIXED: Add authenticateToken BEFORE role middleware
+
 // Get all users - Teachers and Admins can view all users
-router.get('/', requireTeacherOrAdmin, async (req, res) => {
+router.get('/', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
     try {
+        console.log('👥 Fetching users for:', req.user.email, 'Role:', req.user.role);
+
         const users = await User.findAll({
             attributes: ['id', 'name', 'email', 'role', 'student_id', 'department', 'phone', 'is_active', 'last_login', 'created_at'],
             order: [['created_at', 'DESC']]
@@ -21,23 +25,27 @@ router.get('/', requireTeacherOrAdmin, async (req, res) => {
             lastLogin: user.last_login
         }));
 
+        console.log(`✅ Found ${users.length} users`);
         res.json(transformedUsers);
     } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error('💥 Error fetching users:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Get user statistics - Teachers and Admins can view stats
-router.get('/stats', requireTeacherOrAdmin, async (req, res) => {
+router.get('/stats', authenticateToken, requireTeacherOrAdmin, async (req, res) => {
     try {
+        console.log('📊 Fetching user stats for:', req.user.email);
+
         const [totalUsers, students, teachers, admins] = await Promise.all([
             User.count(),
-            User.count({ where: { role: 'Student' } }),
-            User.count({ where: { role: 'Teacher' } }),
-            User.count({ where: { role: 'Admin' } })
+            User.count({ where: { role: 'student' } }),
+            User.count({ where: { role: 'teacher' } }),
+            User.count({ where: { role: 'admin' } })
         ]);
 
+        console.log('✅ User stats calculated');
         res.json({
             totalUsers,
             students,
@@ -45,14 +53,16 @@ router.get('/stats', requireTeacherOrAdmin, async (req, res) => {
             admins
         });
     } catch (error) {
-        console.error('Error fetching user stats:', error);
+        console.error('💥 Error fetching user stats:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Create new user - Only Admins can create users
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', authenticateToken, requireAdmin, async (req, res) => {
     try {
+        console.log('👤 Creating new user by admin:', req.user.email);
+
         const { name, email, role, password, student_id, department, phone } = req.body;
 
         // Validate required fields
@@ -75,7 +85,7 @@ router.post('/', requireAdmin, async (req, res) => {
         const user = await User.create({
             name,
             email,
-            role: role.charAt(0).toUpperCase() + role.slice(1), // Capitalize first letter
+            role: role.toLowerCase(), // Keep consistent with your ENUM values
             password: hashedPassword,
             student_id: student_id || null,
             department: department || null,
@@ -88,21 +98,24 @@ router.post('/', requireAdmin, async (req, res) => {
         const userResponse = user.toJSON();
         delete userResponse.password;
 
+        console.log('✅ User created successfully:', user.id);
         res.status(201).json({
             message: 'User created successfully',
             userId: user.id,
             user: userResponse
         });
     } catch (error) {
-        console.error('Error creating user:', error);
+        console.error('💥 Error creating user:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Update user - Only Admins can update users
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
+        console.log(`✏️ Updating user ${id} by admin:`, req.user.email);
+
         const { name, email, role, student_id, department, phone } = req.body;
 
         // Check if user exists
@@ -112,7 +125,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
         }
 
         // Prevent admin from modifying their own role
-        if (req.user.id === parseInt(id) && role && role !== user.role) {
+        if (req.user.userId === parseInt(id) && role && role !== user.role) {
             return res.status(403).json({ error: 'You cannot change your own role' });
         }
 
@@ -133,7 +146,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
         await user.update({
             name: name || user.name,
             email: email || user.email,
-            role: role ? role.charAt(0).toUpperCase() + role.slice(1) : user.role,
+            role: role ? role.toLowerCase() : user.role,
             student_id: student_id !== undefined ? student_id : user.student_id,
             department: department !== undefined ? department : user.department,
             phone: phone !== undefined ? phone : user.phone
@@ -143,18 +156,19 @@ router.put('/:id', requireAdmin, async (req, res) => {
         const userResponse = user.toJSON();
         delete userResponse.password;
 
+        console.log('✅ User updated successfully');
         res.json({
             message: 'User updated successfully',
             user: userResponse
         });
     } catch (error) {
-        console.error('Error updating user:', error);
+        console.error('💥 Error updating user:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Update user status (activate/deactivate) - Only Admins
-router.patch('/:id/status', requireAdmin, async (req, res) => {
+router.patch('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const { status } = req.body;
@@ -169,7 +183,7 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
         }
 
         // Prevent admin from deactivating themselves
-        if (req.user.id === parseInt(id) && status === 'Inactive') {
+        if (req.user.userId === parseInt(id) && status === 'Inactive') {
             return res.status(403).json({ error: 'You cannot deactivate your own account' });
         }
 
@@ -177,18 +191,19 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
             is_active: status === 'Active'
         });
 
+        console.log('✅ User status updated successfully');
         res.json({
             message: 'User status updated successfully',
             status: status
         });
     } catch (error) {
-        console.error('Error updating user status:', error);
+        console.error('💥 Error updating user status:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Reset user password - Only Admins
-router.post('/:id/reset-password', requireAdmin, async (req, res) => {
+router.post('/:id/reset-password', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -212,7 +227,7 @@ router.post('/:id/reset-password', requireAdmin, async (req, res) => {
             ...(process.env.NODE_ENV === 'development' && { tempPassword })
         });
     } catch (error) {
-        console.error('Error resetting password:', error);
+        console.error('💥 Error resetting password:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -220,7 +235,9 @@ router.post('/:id/reset-password', requireAdmin, async (req, res) => {
 // Get current user's profile - Any authenticated user
 router.get('/profile', authenticateToken, async (req, res) => {
     try {
-        const user = await User.findByPk(req.user.id, {
+        console.log('👤 Fetching profile for:', req.user.email);
+
+        const user = await User.findByPk(req.user.userId, {
             attributes: ['id', 'name', 'email', 'role', 'student_id', 'department', 'phone', 'is_active', 'is_email_verified', 'last_login', 'created_at']
         });
 
@@ -230,7 +247,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
 
         res.json(user);
     } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('💥 Error fetching profile:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -240,7 +257,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
     try {
         const { name, phone, department } = req.body;
 
-        const user = await User.findByPk(req.user.id);
+        const user = await User.findByPk(req.user.userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -261,7 +278,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
             user: userResponse
         });
     } catch (error) {
-        console.error('Error updating profile:', error);
+        console.error('💥 Error updating profile:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -283,7 +300,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
             });
         }
 
-        const user = await User.findByPk(req.user.id);
+        const user = await User.unscoped().findByPk(req.user.userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -300,13 +317,13 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 
         res.json({ message: 'Password changed successfully' });
     } catch (error) {
-        console.error('Error changing password:', error);
+        console.error('💥 Error changing password:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // Delete user (soft delete) - Only Admins
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -316,16 +333,17 @@ router.delete('/:id', requireAdmin, async (req, res) => {
         }
 
         // Prevent admin from deleting themselves
-        if (req.user.id === parseInt(id)) {
+        if (req.user.userId === parseInt(id)) {
             return res.status(403).json({ error: 'You cannot delete your own account' });
         }
 
         // Soft delete - just deactivate
         await user.update({ is_active: false });
 
+        console.log('✅ User deactivated successfully');
         res.json({ message: 'User deactivated successfully' });
     } catch (error) {
-        console.error('Error deleting user:', error);
+        console.error('💥 Error deleting user:', error);
         res.status(500).json({ error: error.message });
     }
 });

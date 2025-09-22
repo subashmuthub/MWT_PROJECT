@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-
-// Base API URL - update this to match your backend
-const API_BASE_URL = 'http://localhost:5000/api' // or your backend URL
+import { Link, useNavigate } from 'react-router-dom'
+import { usersAPI } from '../services/api'
+import { useAuth } from '../contexts/AuthContext' // Make sure you have this
 
 function UserManagement() {
     const [users, setUsers] = useState([])
@@ -28,53 +27,101 @@ function UserManagement() {
         password: ''
     })
 
-    // Fetch users on component mount
+    const navigate = useNavigate()
+    const { user, isAuthenticated, logout } = useAuth()
+
+    // Check authentication on component mount
     useEffect(() => {
-        fetchUsers()
-        fetchUserStats()
+        checkAuthentication()
     }, [])
 
-    // Fetch users from backend
+    // Fetch data only if authenticated
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            // Check if user has permission to access user management
+            if (user.role === 'admin' || user.role === 'teacher') {
+                fetchUsers()
+                fetchUserStats()
+            } else {
+                setError('You do not have permission to access user management')
+                setLoading(false)
+            }
+        }
+    }, [isAuthenticated, user])
+
+    const checkAuthentication = () => {
+        const token = localStorage.getItem('token')
+
+        if (!token) {
+            console.log('❌ No token found, redirecting to login')
+            navigate('/login')
+            return
+        }
+
+        // Check if token is expired
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]))
+            const currentTime = Date.now() / 1000
+
+            if (payload.exp < currentTime) {
+                console.log('❌ Token expired, redirecting to login')
+                logout()
+                navigate('/login')
+                return
+            }
+
+            console.log('✅ Valid token found for user:', payload.email)
+        } catch (error) {
+            console.log('❌ Invalid token, redirecting to login')
+            logout()
+            navigate('/login')
+            return
+        }
+    }
+
     const fetchUsers = async () => {
         try {
             setLoading(true)
-            const response = await fetch(`${API_BASE_URL}/users`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` // if using JWT auth
-                }
-            })
+            setError(null)
+            console.log('👥 Fetching users...')
 
-            if (!response.ok) throw new Error('Failed to fetch users')
-
-            const data = await response.json()
+            const data = await usersAPI.getAll()
             setUsers(data)
+            console.log(`✅ Found ${data.length} users`)
         } catch (err) {
-            setError(err.message)
             console.error('Error fetching users:', err)
+
+            // Handle authentication errors
+            if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+                console.log('🔓 Authentication failed, redirecting to login')
+                logout()
+                navigate('/login')
+                return
+            }
+
+            setError(err.message)
         } finally {
             setLoading(false)
         }
     }
 
-    // Fetch user statistics
     const fetchUserStats = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/users/stats`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            })
-
-            if (!response.ok) throw new Error('Failed to fetch stats')
-
-            const data = await response.json()
+            console.log('📊 Fetching user stats...')
+            const data = await usersAPI.getStats()
             setStats(data)
+            console.log('✅ User stats loaded')
         } catch (err) {
             console.error('Error fetching stats:', err)
+
+            if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+                logout()
+                navigate('/login')
+                return
+            }
         }
     }
 
-    // Handle form input changes
     const handleInputChange = (e) => {
         const { name, value } = e.target
         if (editingUser) {
@@ -84,106 +131,100 @@ function UserManagement() {
         }
     }
 
-    // Handle user creation/update
     const handleSubmit = async (e) => {
         e.preventDefault()
 
         try {
-            const url = editingUser
-                ? `${API_BASE_URL}/users/${editingUser.id}`
-                : `${API_BASE_URL}/users`
-
-            const method = editingUser ? 'PUT' : 'POST'
             const userData = editingUser || newUser
 
-            const response = await fetch(url, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify(userData)
-            })
+            console.log('💾 Saving user:', userData.name)
 
-            if (!response.ok) throw new Error('Failed to save user')
+            if (editingUser) {
+                await usersAPI.update(editingUser.id, userData)
+                console.log('✅ User updated successfully')
+            } else {
+                await usersAPI.create(userData)
+                console.log('✅ User created successfully')
+            }
 
-            // Refresh user list
             await fetchUsers()
             await fetchUserStats()
 
-            // Reset form
             setShowUserForm(false)
             setEditingUser(null)
             setNewUser({ name: '', email: '', role: 'student', password: '' })
 
             alert(editingUser ? 'User updated successfully!' : 'User created successfully!')
         } catch (err) {
+            console.error('Error saving user:', err)
+
+            if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+                logout()
+                navigate('/login')
+                return
+            }
+
             alert('Error saving user: ' + err.message)
-            console.error('Error:', err)
         }
     }
 
-    // Handle user edit
     const handleEdit = (user) => {
-        setEditingUser({ ...user, password: '' }) // Don't include password in edit
+        setEditingUser({ ...user, password: '' })
         setShowUserForm(true)
     }
 
-    // Handle password reset
     const handleResetPassword = async (userId) => {
         if (!window.confirm('Are you sure you want to reset this user\'s password?')) return
 
         try {
-            const response = await fetch(`${API_BASE_URL}/users/${userId}/reset-password`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            })
-
-            if (!response.ok) throw new Error('Failed to reset password')
-
+            console.log('🔐 Resetting password for user:', userId)
+            await usersAPI.resetPassword(userId)
             alert('Password reset email sent to user!')
+            console.log('✅ Password reset successful')
         } catch (err) {
+            console.error('Error resetting password:', err)
+
+            if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+                logout()
+                navigate('/login')
+                return
+            }
+
             alert('Error resetting password: ' + err.message)
-            console.error('Error:', err)
         }
     }
 
-    // Handle user deactivation/activation
     const handleToggleStatus = async (user) => {
         const action = user.status === 'Active' ? 'deactivate' : 'activate'
         if (!window.confirm(`Are you sure you want to ${action} this user?`)) return
 
         try {
-            const response = await fetch(`${API_BASE_URL}/users/${user.id}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({
-                    status: user.status === 'Active' ? 'Inactive' : 'Active'
-                })
-            })
+            const newStatus = user.status === 'Active' ? 'Inactive' : 'Active'
+            console.log(`🔄 ${action}ing user:`, user.name)
 
-            if (!response.ok) throw new Error('Failed to update user status')
-
+            await usersAPI.updateStatus(user.id, newStatus)
             await fetchUsers()
+
             alert(`User ${action}d successfully!`)
+            console.log('✅ User status updated')
         } catch (err) {
+            console.error('Error updating user status:', err)
+
+            if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+                logout()
+                navigate('/login')
+                return
+            }
+
             alert('Error updating user status: ' + err.message)
-            console.error('Error:', err)
         }
     }
 
-    // Handle filter changes
     const handleFilterChange = (e) => {
         const { name, value } = e.target
         setFilters({ ...filters, [name]: value })
     }
 
-    // Filter users based on search and filters
     const filteredUsers = users.filter(user => {
         const matchesSearch = user.name.toLowerCase().includes(filters.search.toLowerCase()) ||
             user.email.toLowerCase().includes(filters.search.toLowerCase())
@@ -193,7 +234,6 @@ function UserManagement() {
         return matchesSearch && matchesRole && matchesStatus
     })
 
-    // Close form and reset
     const closeForm = () => {
         setShowUserForm(false)
         setEditingUser(null)
@@ -202,9 +242,10 @@ function UserManagement() {
 
     const getRoleColor = (role) => {
         switch (role) {
-            case 'Admin': return 'bg-red-100 text-red-800'
-            case 'Teacher': return 'bg-blue-100 text-blue-800'
-            case 'Student': return 'bg-green-100 text-green-800'
+            case 'admin': return 'bg-red-100 text-red-800'
+            case 'teacher': return 'bg-blue-100 text-blue-800'
+            case 'student': return 'bg-green-100 text-green-800'
+            case 'lab_assistant': return 'bg-purple-100 text-purple-800'
             default: return 'bg-gray-100 text-gray-800'
         }
     }
@@ -213,18 +254,59 @@ function UserManagement() {
         return status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
     }
 
+    // Show loading while checking authentication
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <div className="text-xl">Loading users...</div>
+                <div className="text-center">
+                    <div className="text-xl mb-4">Loading...</div>
+                    <div className="text-sm text-gray-600">
+                        {!isAuthenticated ? 'Checking authentication...' : 'Loading users...'}
+                    </div>
+                </div>
             </div>
         )
     }
 
-    if (error) {
+    // Show error if user doesn't have permission
+    if (error && error.includes('permission')) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <div className="text-xl text-red-600">Error: {error}</div>
+                <div className="text-center">
+                    <div className="text-xl text-red-600 mb-4">Access Denied</div>
+                    <div className="text-gray-600 mb-4">{error}</div>
+                    <Link
+                        to="/dashboard"
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    >
+                        Back to Dashboard
+                    </Link>
+                </div>
+            </div>
+        )
+    }
+
+    // Show error with retry option
+    if (error && !error.includes('permission')) {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-xl text-red-600 mb-4">Error: {error}</div>
+                    <div className="space-x-2">
+                        <button
+                            onClick={fetchUsers}
+                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                        >
+                            Retry
+                        </button>
+                        <Link
+                            to="/dashboard"
+                            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                        >
+                            Back to Dashboard
+                        </Link>
+                    </div>
+                </div>
             </div>
         )
     }
@@ -235,21 +317,34 @@ function UserManagement() {
             <div className="bg-white shadow">
                 <div className="px-6 py-4 flex justify-between items-center">
                     <div>
-                        <Link to="/dashboard" className="text-blue-500 hover:underline">← Dashboard</Link>
+                        <Link to="/admin-dashboard" className="text-blue-500 hover:underline">← Dashboard</Link>
                         <h1 className="text-2xl font-bold text-gray-800 mt-2">User Management</h1>
+                        <p className="text-sm text-gray-600">
+                            Logged in as: {user?.name} ({user?.role})
+                        </p>
                     </div>
-                    <button
-                        onClick={() => setShowUserForm(true)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                    >
-                        Add User
-                    </button>
+                    <div className="flex gap-2">
+                        {user?.role === 'admin' && (
+                            <button
+                                onClick={() => setShowUserForm(true)}
+                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                            >
+                                Add User
+                            </button>
+                        )}
+                        <button
+                            onClick={logout}
+                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                        >
+                            Logout
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div className="p-6">
-                {/* User Form Modal */}
-                {showUserForm && (
+                {/* User Form Modal - Only for Admins */}
+                {showUserForm && user?.role === 'admin' && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white p-6 rounded-lg w-full max-w-md">
                             <h2 className="text-xl font-bold mb-4">
@@ -286,9 +381,10 @@ function UserManagement() {
                                         onChange={handleInputChange}
                                         className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
                                     >
-                                        <option value="Student">Student</option>
-                                        <option value="Teacher">Teacher</option>
-                                        <option value="Admin">Admin</option>
+                                        <option value="student">Student</option>
+                                        <option value="teacher">Teacher</option>
+                                        <option value="lab_assistant">Lab Assistant</option>
+                                        <option value="admin">Admin</option>
                                     </select>
                                 </div>
                                 {!editingUser && (
@@ -362,9 +458,10 @@ function UserManagement() {
                             className="px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
                         >
                             <option value="">All Roles</option>
-                            <option value="Student">Student</option>
-                            <option value="Teacher">Teacher</option>
-                            <option value="Admin">Admin</option>
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="lab_assistant">Lab Assistant</option>
+                            <option value="admin">Admin</option>
                         </select>
                         <select
                             name="status"
@@ -390,54 +487,58 @@ function UserManagement() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Login</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                {user?.role === 'admin' && (
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {filteredUsers.length > 0 ? (
-                                filteredUsers.map((user) => (
-                                    <tr key={user.id}>
-                                        <td className="px-6 py-4 text-sm text-gray-900">{user.id}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">{user.name}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">{user.email}</td>
+                                filteredUsers.map((userItem) => (
+                                    <tr key={userItem.id}>
+                                        <td className="px-6 py-4 text-sm text-gray-900">{userItem.id}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">{userItem.name}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-900">{userItem.email}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
-                                                {user.role}
+                                            <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(userItem.role)}`}>
+                                                {userItem.role}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
-                                                {user.status}
+                                            <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(userItem.status)}`}>
+                                                {userItem.status}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
-                                            {new Date(user.lastLogin).toLocaleDateString()}
+                                            {userItem.lastLogin ? new Date(userItem.lastLogin).toLocaleDateString() : 'Never'}
                                         </td>
-                                        <td className="px-6 py-4 text-sm">
-                                            <button
-                                                onClick={() => handleEdit(user)}
-                                                className="text-blue-500 hover:underline mr-4"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleResetPassword(user.id)}
-                                                className="text-green-500 hover:underline mr-4"
-                                            >
-                                                Reset Password
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleStatus(user)}
-                                                className="text-red-500 hover:underline"
-                                            >
-                                                {user.status === 'Active' ? 'Deactivate' : 'Activate'}
-                                            </button>
-                                        </td>
+                                        {user?.role === 'admin' && (
+                                            <td className="px-6 py-4 text-sm">
+                                                <button
+                                                    onClick={() => handleEdit(userItem)}
+                                                    className="text-blue-500 hover:underline mr-4"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleResetPassword(userItem.id)}
+                                                    className="text-green-500 hover:underline mr-4"
+                                                >
+                                                    Reset Password
+                                                </button>
+                                                <button
+                                                    onClick={() => handleToggleStatus(userItem)}
+                                                    className="text-red-500 hover:underline"
+                                                >
+                                                    {userItem.status === 'Active' ? 'Deactivate' : 'Activate'}
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan={user?.role === 'admin' ? "7" : "6"} className="px-6 py-4 text-center text-gray-500">
                                         No users found
                                     </td>
                                 </tr>
@@ -449,7 +550,7 @@ function UserManagement() {
                 {/* User Permissions */}
                 <div className="mt-6 bg-white rounded shadow p-6">
                     <h2 className="text-lg font-bold mb-4">Role Permissions</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div className="border rounded p-4">
                             <h3 className="font-bold text-red-600 mb-2">Admin</h3>
                             <ul className="text-sm text-gray-600 space-y-1">
@@ -466,6 +567,15 @@ function UserManagement() {
                                 <li>• View student activity</li>
                                 <li>• Generate reports</li>
                                 <li>• Approve student requests</li>
+                            </ul>
+                        </div>
+                        <div className="border rounded p-4">
+                            <h3 className="font-bold text-purple-600 mb-2">Lab Assistant</h3>
+                            <ul className="text-sm text-gray-600 space-y-1">
+                                <li>• Equipment maintenance</li>
+                                <li>• Inventory management</li>
+                                <li>• Basic user support</li>
+                                <li>• Equipment checkout</li>
                             </ul>
                         </div>
                         <div className="border rounded p-4">

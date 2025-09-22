@@ -9,6 +9,7 @@ function LoginPage() {
     })
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const [staySignedIn, setStaySignedIn] = useState(false)
     const { login } = useAuth()
     const navigate = useNavigate()
 
@@ -18,12 +19,10 @@ function LoginPage() {
             ...prev,
             [name]: value
         }))
-        // Clear error when user starts typing
         if (error) setError('')
     }
 
     const validateForm = () => {
-        // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         if (!formData.email) {
             setError('Email is required')
@@ -33,8 +32,6 @@ function LoginPage() {
             setError('Please enter a valid email address')
             return false
         }
-
-        // Password validation
         if (!formData.password) {
             setError('Password is required')
             return false
@@ -43,7 +40,6 @@ function LoginPage() {
             setError('Password must be at least 6 characters')
             return false
         }
-
         return true
     }
 
@@ -51,7 +47,6 @@ function LoginPage() {
         e.preventDefault()
         setError('')
 
-        // Validate form before submission
         if (!validateForm()) {
             return
         }
@@ -64,8 +59,6 @@ function LoginPage() {
 
             if (result.success) {
                 console.log('✅ Login successful:', result.user)
-
-                // Route based on user role from database
                 const userRole = result.user.role
                 console.log('🔀 Routing user based on role:', userRole)
 
@@ -97,81 +90,125 @@ function LoginPage() {
         }
     }
 
-
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8">
-                <div className="bg-white p-8 rounded-lg shadow-md">
-                    <div className="text-center">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Sign In</h2>
-                        <p className="text-gray-600 mb-6">Lab Management System</p>
-                    </div>
+        <div
+            className="min-h-screen w-full flex flex-col bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url('/Images/Home.jpg')" }}
+        >
+            {/* College Header - matches your friend's design */}
+            <div className="flex items-center justify-between bg-blue-900 text-yellow-400 px-5 py-3">
+                <img
+                    src="/Images/Logo.png"
+                    alt="College Logo"
+                    className="w-20 h-auto ml-2"
+                />
+                <div className="text-center flex-grow">
+                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold m-0">
+                        Lab Management System
+                    </h1>
+                    <p className="text-xs md:text-sm mt-1 leading-tight">
+                        National Engineering College
+                        <br />
+                        (An Autonomous Institution Affiliated to Anna University Chennai)
+                        <br />
+                        K.R. Nagar, Kovilpatti - 628503, Thoothukudi Dist. Tamilnadu
+                        <br />
+                        Phone: 04632 - 222502, 230227 | Email: principal@nec.edu.in | Web: www.nec.edu.in
+                    </p>
+                </div>
+                <img
+                    src="/Images/Founder.jpg"
+                    alt="Founder"
+                    className="w-20 h-auto mr-2"
+                />
+            </div>
 
+            {/* Login Section - matches your friend's centered layout */}
+            <div className="flex-grow flex items-center justify-center p-5">
+                <div className="bg-white bg-opacity-90 p-8 w-full max-w-md rounded-lg shadow-lg">
+                    <h1 className="text-3xl font-bold text-blue-900 mb-6 text-center">Sign In</h1>
+
+                    {/* Error Display - enhanced styling */}
                     {error && (
                         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div className="ml-3">
-                                    <p className="text-sm">{error}</p>
-                                </div>
+                            <div className="flex items-center">
+                                <span className="text-lg mr-2">⚠️</span>
+                                <span className="text-sm">{error}</span>
                             </div>
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-                        {/* Email */}
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Email Field */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-bold text-left mb-2 text-blue-900">
                                 Email Address
                             </label>
                             <input
                                 type="email"
                                 name="email"
+                                placeholder="Enter your email address"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${error && error.includes('email') ? 'border-red-500' : 'border-gray-300'
-                                    }`}
                                 required
                                 disabled={loading}
-                                placeholder="Enter your email address"
                                 autoComplete="email"
+                                className={`w-full px-3 py-3 border rounded-md text-base transition-all duration-200
+                                    ${error && error.toLowerCase().includes('email')
+                                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+                                        : 'border-gray-300 focus:border-blue-900 focus:ring-2 focus:ring-blue-200'
+                                    } 
+                                    focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed`}
                             />
                         </div>
 
-                        {/* Password */}
+                        {/* Password Field */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-bold text-left mb-2 text-blue-900">
                                 Password
                             </label>
                             <input
                                 type="password"
                                 name="password"
+                                placeholder="Enter your password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${error && error.includes('password') ? 'border-red-500' : 'border-gray-300'
-                                    }`}
                                 required
                                 disabled={loading}
-                                placeholder="Enter your password"
                                 autoComplete="current-password"
+                                className={`w-full px-3 py-3 border rounded-md text-base transition-all duration-200
+                                    ${error && error.toLowerCase().includes('password')
+                                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+                                        : 'border-gray-300 focus:border-blue-900 focus:ring-2 focus:ring-blue-200'
+                                    } 
+                                    focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed`}
                             />
                         </div>
 
+                        {/* Stay Signed In Checkbox - matches your friend's styling */}
+                        <div className="flex items-center gap-2 my-4">
+                            <input
+                                type="checkbox"
+                                id="staySignedIn"
+                                checked={staySignedIn}
+                                onChange={(e) => setStaySignedIn(e.target.checked)}
+                                disabled={loading}
+                                className="w-5 h-5 text-blue-900 rounded focus:ring-blue-500 focus:ring-2"
+                            />
+                            <label htmlFor="staySignedIn" className="text-sm text-gray-700 cursor-pointer">
+                                Stay signed in
+                            </label>
+                        </div>
+
+                        {/* Login Button - matches your friend's blue styling */}
                         <button
                             type="submit"
                             disabled={loading || !formData.email || !formData.password}
-                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed"
+                            className="w-full bg-blue-900 text-white border-none py-3 mt-6 rounded-md cursor-pointer text-base font-medium transition-all duration-200 hover:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {loading ? (
-                                <div className="flex items-center">
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
+                                <div className="flex items-center justify-center gap-3">
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                     Signing in...
                                 </div>
                             ) : (
@@ -179,20 +216,41 @@ function LoginPage() {
                             )}
                         </button>
                     </form>
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                            Don't have an account?{' '}
-                            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                                Register here
+
+                    {/* Additional Links - matches your friend's layout */}
+                    <div className="mt-6 text-center space-y-3">
+                        <div className="text-sm">
+                            <a
+                                href="#"
+                                onClick={(e) => e.preventDefault()}
+                                className="text-blue-900 hover:underline transition-all duration-200"
+                            >
+                                Forgot password / username
+                            </a>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                            <p>
+                                Don't have an account?{' '}
+                                <Link
+                                    to="/register"
+                                    className="text-blue-900 hover:underline font-medium transition-all duration-200"
+                                >
+                                    Register here
+                                </Link>
+                            </p>
+                        </div>
+                        <div className="text-xs">
+                            <Link
+                                to="/"
+                                className="text-gray-500 hover:text-blue-900 hover:underline transition-all duration-200"
+                            >
+                                ← Back to Home
                             </Link>
-                        </p>
-                        <Link to="/" className="text-xs text-gray-500 hover:text-gray-700 mt-2 inline-block">
-                            ← Back to Home
-                        </Link>
+                        </div>
                     </div>
-                </div >
-            </div >
-        </div >
+                </div>
+            </div>
+        </div>
     )
 }
 
