@@ -25,33 +25,32 @@ import Training from './pages/Training'
 import './index.css'
 import Chatbot from './components/Chatbot'
 
-// Component to handle automatic redirects
-const AuthRedirect = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
-          </div>
-          <p className="text-gray-600 mt-4 font-medium">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If user is authenticated and tries to access login/register, redirect to dashboard
-  if (user && (window.location.pathname === '/login' || window.location.pathname === '/register')) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return children;
-};
-
 function AppContent() {
+  // Component to handle automatic redirects
+  const AuthRedirect = ({ children }) => {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
+            </div>
+            <p className="text-gray-600 mt-4 font-medium">Loading...</p>
+          </div>
+        </div>
+      );
+    }
+
+    // If user is authenticated and tries to access login/register, redirect to dashboard
+    if (user && (window.location.pathname === '/login' || window.location.pathname === '/register')) {
+      return <Navigate to="/dashboard" replace />;
+    }
+
+    return children;
+  };
   return (
     <div className="min-h-screen bg-gray-50">
       <Routes>

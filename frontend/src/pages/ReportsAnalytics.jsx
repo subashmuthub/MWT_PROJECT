@@ -1,7 +1,7 @@
 // src/pages/ReportsAnalytics.jsx - Professional Reports & Analytics with Excel Export
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { reportsAPI } from '../services/api'
 
 export default function ReportsAnalytics() {

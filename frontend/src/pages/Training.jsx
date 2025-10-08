@@ -1,7 +1,7 @@
 // src/pages/Training.jsx
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Training() {
     // Training-specific state

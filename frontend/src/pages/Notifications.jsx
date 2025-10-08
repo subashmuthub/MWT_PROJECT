@@ -1,7 +1,7 @@
 // src/pages/Notifications.jsx - Professional Notifications with Sidebar and Backend Integration
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Notifications() {
     // Notifications specific state

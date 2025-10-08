@@ -1,7 +1,7 @@
 // src/pages/UserManagement.jsx - Professional User Management with Sidebar
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { usersAPI } from '../services/api'
 
 export default function UserManagement() {

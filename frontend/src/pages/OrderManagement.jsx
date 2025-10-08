@@ -1,7 +1,7 @@
 // src/pages/OrderManagement.jsx - Professional Order Management with Sidebar
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 export default function OrderManagement() {
     // Order management specific state

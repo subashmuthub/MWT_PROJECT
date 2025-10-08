@@ -7,8 +7,17 @@ import { useAuth } from '../hooks/useAuth';
 const HomePage = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const { user } = useAuth();
     const navigate = useNavigate();
+    
+    // Safely get user, with fallback if auth context isn't ready
+    let user = null;
+    try {
+        const authData = useAuth();
+        user = authData?.user;
+    } catch (error) {
+        console.log('Auth context not ready yet:', error.message);
+        // This is expected on initial load
+    }
 
     // Hero Slides Data
     const heroSlides = [

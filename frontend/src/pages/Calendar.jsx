@@ -1,7 +1,7 @@
 // src/pages/Calendar.jsx
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Calendar() {
     // Calendar-specific state

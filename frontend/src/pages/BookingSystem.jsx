@@ -247,13 +247,17 @@ function BookingSystem() {
                     console.error('Failed to fetch equipment:', equipmentResponse.status)
                 }
 
-                // Fetch bookings
-                const bookingsResponse = await fetch(`${API_BASE_URL}/bookings`, { headers })
+                // Fetch current user's bookings (current and upcoming only)
+                const now = new Date().toISOString()
+                const bookingsResponse = await fetch(`${API_BASE_URL}/bookings?my_bookings=true&start_date=${now.split('T')[0]}`, { headers })
                 if (bookingsResponse.ok) {
                     const bookingsData = await bookingsResponse.json()
+                    console.log('Bookings data received:', bookingsData)
                     setBookings(bookingsData.data?.bookings || [])
                 } else {
                     console.error('Failed to fetch bookings:', bookingsResponse.status)
+                    const errorData = await bookingsResponse.json()
+                    console.error('Booking error details:', errorData)
                 }
 
             } catch (error) {

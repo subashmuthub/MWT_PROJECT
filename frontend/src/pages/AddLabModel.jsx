@@ -1,7 +1,7 @@
 // AddLab.jsx - Full Page Component with Sidebar and Header
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 function AddLab() {
     const navigate = useNavigate()

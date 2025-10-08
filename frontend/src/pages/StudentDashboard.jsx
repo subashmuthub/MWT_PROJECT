@@ -1,7 +1,7 @@
 // ========================================
 // STUDENT DASHBOARD - src/pages/StudentDashboard.jsx
 // ========================================
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 
 function StudentDashboard() {

@@ -34,6 +34,13 @@ router.get('/', async (req, res) => {
             whereClause.user_id = user_id;
         }
 
+        // Filter for current and future bookings by default (exclude past bookings)
+        if (!start_date && !end_date) {
+            const now = new Date();
+            now.setHours(0, 0, 0, 0); // Start from today
+            whereClause.start_time = { [Op.gte]: now };
+        }
+
         // Additional filters
         if (status) whereClause.status = status;
         if (booking_type) whereClause.booking_type = booking_type;
@@ -71,7 +78,7 @@ router.get('/', async (req, res) => {
                     required: false
                 }
             ],
-            order: [['start_time', 'DESC']],
+            order: [['start_time', 'ASC']], // Show upcoming bookings first
             limit: parseInt(limit),
             offset: offset
         });

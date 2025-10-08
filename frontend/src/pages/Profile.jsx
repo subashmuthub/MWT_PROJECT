@@ -1,7 +1,7 @@
 // src/pages/Profile.jsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Profile() {
     const [profile, setProfile] = useState({
@@ -58,7 +58,7 @@ export default function Profile() {
 
     const fetchProfile = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/profile`, {
+            const response = await fetch(`${API_BASE_URL}/users/profile`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -66,8 +66,13 @@ export default function Profile() {
             })
             if (response.ok) {
                 const result = await response.json()
-                setProfile(result.data)
-                setNotificationPreferences(result.data.notification_preferences || notificationPreferences)
+                console.log('Profile data received:', result)
+                if (result.success) {
+                    setProfile(result.data || result.user)
+                    setNotificationPreferences(result.data?.notification_preferences || notificationPreferences)
+                } else {
+                    setProfile(result.user || result)
+                }
             }
         } catch (error) {
             console.error('Error fetching profile:', error)
@@ -79,7 +84,7 @@ export default function Profile() {
 
     const fetchBookingHistory = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/bookings/user/${user.id}`, {
+            const response = await fetch(`${API_BASE_URL}/bookings?my_bookings=true&limit=20`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -87,7 +92,7 @@ export default function Profile() {
             })
             if (response.ok) {
                 const result = await response.json()
-                setBookingHistory(result.data || [])
+                setBookingHistory(result.data?.bookings || [])
             }
         } catch (error) {
             console.error('Error fetching booking history:', error)
@@ -124,18 +129,20 @@ export default function Profile() {
                 }
             })
 
-            const response = await fetch(`${API_BASE_URL}/profile`, {
+            const response = await fetch(`${API_BASE_URL}/users/profile`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 },
-                body: formData
+                body: JSON.stringify(profile)
             })
 
             if (response.ok) {
                 const result = await response.json()
-                setProfile(result.data)
-                updateUser(result.data)
+                const updatedUser = result.data || result.user
+                setProfile(updatedUser)
+                updateUser(updatedUser)
                 setSuccess('Profile updated successfully')
                 setTimeout(() => setSuccess(''), 3000)
             } else {
@@ -165,7 +172,7 @@ export default function Profile() {
         setError('')
 
         try {
-            const response = await fetch(`${API_BASE_URL}/profile/password`, {
+            const response = await fetch(`${API_BASE_URL}/users/profile/password`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -198,7 +205,7 @@ export default function Profile() {
         setError('')
 
         try {
-            const response = await fetch(`${API_BASE_URL}/profile/notifications`, {
+            const response = await fetch(`${API_BASE_URL}/users/profile/notifications`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,

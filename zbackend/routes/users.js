@@ -245,7 +245,10 @@ router.get('/profile', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        res.json(user);
+        res.json({
+            success: true,
+            data: user
+        });
     } catch (error) {
         console.error('💥 Error fetching profile:', error);
         res.status(500).json({ error: error.message });
@@ -274,8 +277,9 @@ router.put('/profile', authenticateToken, async (req, res) => {
         delete userResponse.password;
 
         res.json({
+            success: true,
             message: 'Profile updated successfully',
-            user: userResponse
+            data: userResponse
         });
     } catch (error) {
         console.error('💥 Error updating profile:', error);
@@ -284,6 +288,100 @@ router.put('/profile', authenticateToken, async (req, res) => {
 });
 
 // Change password for current user - Any authenticated user
+router.put('/profile/password', authenticateToken, async (req, res) => {
+    try {
+        const { current_password, new_password } = req.body;
+
+        if (!current_password || !new_password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Both current password and new password are required'
+            });
+        }
+
+        if (new_password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: 'New password must be at least 8 characters long'
+            });
+        }
+
+        const user = await User.unscoped().findByPk(req.user.userId);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'User not found' 
+            });
+        }
+
+        // Verify current password
+        const isValidPassword = await bcrypt.compare(current_password, user.password);
+        if (!isValidPassword) {
+            return res.status(401).json({ 
+                success: false,
+                message: 'Current password is incorrect' 
+            });
+        }
+
+        // Hash and update new password
+        const hashedPassword = await bcrypt.hash(new_password, 10);
+        await user.update({ password: hashedPassword });
+
+        res.json({ 
+            success: true,
+            message: 'Password changed successfully' 
+        });
+    } catch (error) {
+        console.error('💥 Error changing password:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to change password',
+            error: error.message 
+        });
+    }
+});
+
+// Update notification preferences for current user
+router.put('/profile/notifications', authenticateToken, async (req, res) => {
+    try {
+        const { email_notifications, booking_reminders, maintenance_alerts, system_updates } = req.body;
+
+        const user = await User.findByPk(req.user.userId);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'User not found' 
+            });
+        }
+
+        // Create notification preferences object
+        const notificationPreferences = {
+            email_notifications: email_notifications !== undefined ? email_notifications : true,
+            booking_reminders: booking_reminders !== undefined ? booking_reminders : true,
+            maintenance_alerts: maintenance_alerts !== undefined ? maintenance_alerts : false,
+            system_updates: system_updates !== undefined ? system_updates : true
+        };
+
+        await user.update({ 
+            notification_preferences: JSON.stringify(notificationPreferences)
+        });
+
+        res.json({ 
+            success: true,
+            message: 'Notification preferences updated successfully',
+            data: notificationPreferences
+        });
+    } catch (error) {
+        console.error('💥 Error updating notification preferences:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to update notification preferences',
+            error: error.message 
+        });
+    }
+});
+
+// Change password for current user - Any authenticated user (legacy endpoint)
 router.post('/change-password', authenticateToken, async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;

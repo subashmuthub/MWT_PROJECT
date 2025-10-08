@@ -1,6 +1,6 @@
 // src/components/IntelligentChatbot.jsx - Clean Real Data Chatbot
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 export default function IntelligentChatbot() {
     const [isOpen, setIsOpen] = useState(false);
