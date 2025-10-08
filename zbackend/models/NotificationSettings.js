@@ -12,28 +12,40 @@ const NotificationSettings = sequelize.define('NotificationSettings', {
         allowNull: false,
         unique: true,
         references: {
-            model: 'Users',
+            model: 'users',
             key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
     },
-    emailNotifications: {
+    email_notifications: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: true
     },
-    pushNotifications: {
+    push_notifications: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: true
     },
-    bookingReminders: {
+    booking_reminders: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: true
     },
-    systemAlerts: {
+    system_alerts: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: true
     }
 }, {
-    timestamps: true
+    tableName: 'notification_settings',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    indexes: [
+        { unique: true, fields: ['user_id'] }
+    ]
 });
 
 module.exports = NotificationSettings;

@@ -1,4 +1,4 @@
-const { DataTypes } = require('sequelize');
+const { DataTypes, Op } = require('sequelize');
 const { sequelize } = require('../config/database');
 
 const Maintenance = sequelize.define('Maintenance', {
@@ -13,7 +13,9 @@ const Maintenance = sequelize.define('Maintenance', {
         references: {
             model: 'equipment',
             key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
     },
     equipment_name: {
         type: DataTypes.STRING(255),
@@ -51,16 +53,24 @@ const Maintenance = sequelize.define('Maintenance', {
         references: {
             model: 'users',
             key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
     },
     estimated_cost: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
-        defaultValue: 0.00
+        defaultValue: 0.00,
+        validate: {
+            min: 0
+        }
     },
     actual_cost: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: true
+        allowNull: true,
+        validate: {
+            min: 0
+        }
     },
     description: {
         type: DataTypes.TEXT,
@@ -71,12 +81,14 @@ const Maintenance = sequelize.define('Maintenance', {
         allowNull: true
     },
     estimated_duration: {
-        type: DataTypes.INTEGER, // in minutes
-        allowNull: true
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Duration in minutes'
     },
     actual_duration: {
-        type: DataTypes.INTEGER, // in minutes
-        allowNull: true
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'Duration in minutes'
     },
     priority: {
         type: DataTypes.ENUM('low', 'medium', 'high', 'critical'),
@@ -113,6 +125,7 @@ const Maintenance = sequelize.define('Maintenance', {
     },
     warranty_applicable: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: false
     },
     vendor_contact: {
@@ -121,6 +134,7 @@ const Maintenance = sequelize.define('Maintenance', {
     },
     approval_status: {
         type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+        allowNull: false,
         defaultValue: 'pending'
     },
     approved_by: {
@@ -129,7 +143,9 @@ const Maintenance = sequelize.define('Maintenance', {
         references: {
             model: 'users',
             key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
     },
     created_by: {
         type: DataTypes.INTEGER,
@@ -137,40 +153,37 @@ const Maintenance = sequelize.define('Maintenance', {
         references: {
             model: 'users',
             key: 'id'
-        }
-    },
-    created_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
     }
 }, {
     tableName: 'maintenance_records',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
-    indexes: [
-        {
-            fields: ['equipment_id']
-        },
-        {
-            fields: ['status']
-        },
-        {
-            fields: ['scheduled_date']
-        },
-        {
-            fields: ['technician_id']
-        },
-        {
-            fields: ['priority']
-        },
-        {
-            fields: ['maintenance_type']
+    validate: {
+        actualDateNotTooEarly() {
+            if (this.actual_date && this.scheduled_date) {
+                const scheduledTime = new Date(this.scheduled_date).getTime();
+                const actualTime = new Date(this.actual_date).getTime();
+                const daysBefore = (scheduledTime - actualTime) / (1000 * 60 * 60 * 24);
+                
+                if (daysBefore > 7) {
+                    throw new Error('Actual date cannot be more than 7 days before scheduled date');
+                }
+            }
         }
+    },
+    indexes: [
+        { fields: ['equipment_id'] },
+        { fields: ['status'] },
+        { fields: ['scheduled_date'] },
+        { fields: ['technician_id'] },
+        { fields: ['priority'] },
+        { fields: ['maintenance_type'] },
+        { fields: ['approval_status'] },
+        { fields: ['created_by'] }
     ]
 });
 
@@ -193,7 +206,7 @@ Maintenance.prototype.markAsCompleted = async function (workPerformed, actualCos
 
 Maintenance.prototype.calculateDuration = function () {
     if (this.started_at && this.completed_at) {
-        return Math.round((this.completed_at - this.started_at) / (1000 * 60)); // in minutes
+        return Math.round((this.completed_at - this.started_at) / (1000 * 60));
     }
     return null;
 };
@@ -206,7 +219,7 @@ Maintenance.getUpcoming = async function (days = 7) {
     return await this.findAll({
         where: {
             scheduled_date: {
-                [sequelize.Sequelize.Op.between]: [new Date(), endDate]
+                [Op.between]: [new Date(), endDate]
             },
             status: ['scheduled', 'in_progress']
         },
@@ -218,7 +231,7 @@ Maintenance.getOverdue = async function () {
     return await this.findAll({
         where: {
             scheduled_date: {
-                [sequelize.Sequelize.Op.lt]: new Date()
+                [Op.lt]: new Date()
             },
             status: ['scheduled', 'in_progress']
         }

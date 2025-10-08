@@ -1,47 +1,97 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { authenticateToken } = require('../middleware/auth');
-const Booking = require('../models/Booking');
-const Equipment = require('../models/Equipment');
-const User = require('../models/User');
-const Lab = require('../models/Lab');
+const { authenticateToken, authorize } = require('../middleware/auth');
+const { Booking, Equipment, User, Lab } = require('../models');
+const { sequelize } = require('../config/database');
 
-// Apply authentication middleware to all routes
 router.use(authenticateToken);
 
-// GET all bookings
+// ✅ FIXED: GET all bookings with proper response format
 router.get('/', async (req, res) => {
     try {
-        const bookings = await Booking.findAll({
+        console.log('📅 Fetching bookings for user:', req.user.email, 'Role:', req.user.role);
+
+        const {
+            page = 1,
+            limit = 50,
+            status,
+            booking_type,
+            user_id,
+            lab_id,
+            equipment_id,
+            start_date,
+            end_date,
+            my_bookings
+        } = req.query;
+
+        const whereClause = {};
+
+        // Role-based filtering
+        if (req.user.role === 'student' || my_bookings === 'true') {
+            whereClause.user_id = req.user.userId;
+        } else if (user_id && (req.user.role === 'admin' || req.user.role === 'teacher')) {
+            whereClause.user_id = user_id;
+        }
+
+        // Additional filters
+        if (status) whereClause.status = status;
+        if (booking_type) whereClause.booking_type = booking_type;
+        if (lab_id) whereClause.lab_id = lab_id;
+        if (equipment_id) whereClause.equipment_id = equipment_id;
+
+        // Date range filter
+        if (start_date || end_date) {
+            whereClause.start_time = {};
+            if (start_date) whereClause.start_time[Op.gte] = new Date(start_date);
+            if (end_date) whereClause.start_time[Op.lte] = new Date(end_date + 'T23:59:59');
+        }
+
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        const { rows: bookings, count: total } = await Booking.findAndCountAll({
+            where: whereClause,
             include: [
                 {
                     model: Equipment,
                     as: 'equipment',
                     attributes: ['id', 'name', 'serial_number', 'category'],
-                    required: false // LEFT JOIN
+                    required: false
                 },
                 {
                     model: Lab,
                     as: 'lab',
                     attributes: ['id', 'name', 'location', 'lab_type'],
-                    required: false // LEFT JOIN
+                    required: false
                 },
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'name', 'email']
+                    attributes: ['id', 'name', 'email'],
+                    required: false
                 }
             ],
-            order: [['booking_date', 'ASC'], ['start_time', 'ASC']] // Fixed: use booking_date
+            order: [['start_time', 'DESC']],
+            limit: parseInt(limit),
+            offset: offset
         });
+
+        console.log(`✅ Found ${total} bookings (showing ${bookings.length})`);
 
         res.json({
             success: true,
-            data: { bookings }
+            data: {
+                bookings: bookings,
+                pagination: {
+                    total,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    totalPages: Math.ceil(total / parseInt(limit))
+                }
+            }
         });
     } catch (error) {
-        console.error('Error fetching bookings:', error);
+        console.error('💥 Error fetching bookings:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch bookings',
@@ -50,113 +100,276 @@ router.get('/', async (req, res) => {
     }
 });
 
-// CREATE new booking
-router.post('/', async (req, res) => {
+// GET booking statistics
+router.get('/stats', async (req, res) => {
     try {
-        const {
-            booking_type = 'equipment', // Default to equipment for backward compatibility
-            lab_id,
-            equipment_id,
-            date, // Frontend sends 'date'
-            start_time,
-            end_time,
-            purpose
-        } = req.body;
+        const whereClause = {};
+        if (req.user.role === 'student') {
+            whereClause.user_id = req.user.userId;
+        }
 
-        console.log('Received booking data:', {
-            booking_type,
-            lab_id,
-            equipment_id,
-            date,
-            start_time,
-            end_time,
-            purpose
+        const totalBookings = await Booking.count({ where: whereClause });
+        const pendingBookings = await Booking.count({ where: { ...whereClause, status: 'pending' } });
+        const confirmedBookings = await Booking.count({ where: { ...whereClause, status: 'confirmed' } });
+        const completedBookings = await Booking.count({ where: { ...whereClause, status: 'completed' } });
+
+        const now = new Date();
+        const activeBookings = await Booking.count({
+            where: {
+                ...whereClause,
+                status: { [Op.in]: ['pending', 'confirmed'] },
+                start_time: { [Op.gte]: now }
+            }
         });
 
-        // Validation
-        if (!date || !start_time || !end_time) {
+        res.json({
+            success: true,
+            data: {
+                total: totalBookings,
+                pending: pendingBookings,
+                confirmed: confirmedBookings,
+                completed: completedBookings,
+                active: activeBookings
+            }
+        });
+    } catch (error) {
+        console.error('💥 Error fetching booking stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch booking statistics',
+            error: error.message
+        });
+    }
+});
+
+// GET upcoming bookings
+router.get('/upcoming', async (req, res) => {
+    try {
+        const now = new Date();
+        const { limit = 10 } = req.query;
+
+        const whereClause = {
+            start_time: { [Op.gte]: now },
+            status: { [Op.in]: ['pending', 'confirmed'] }
+        };
+
+        if (req.user.role === 'student') {
+            whereClause.user_id = req.user.userId;
+        }
+
+        const upcomingBookings = await Booking.findAll({
+            where: whereClause,
+            include: [
+                {
+                    model: Equipment,
+                    as: 'equipment',
+                    attributes: ['id', 'name'],
+                    required: false
+                },
+                {
+                    model: Lab,
+                    as: 'lab',
+                    attributes: ['id', 'name'],
+                    required: false
+                },
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name'],
+                    required: false
+                }
+            ],
+            order: [['start_time', 'ASC']],
+            limit: parseInt(limit)
+        });
+
+        res.json({
+            success: true,
+            data: upcomingBookings
+        });
+    } catch (error) {
+        console.error('💥 Error fetching upcoming bookings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch upcoming bookings',
+            error: error.message
+        });
+    }
+});
+
+// ✅ FIXED: CREATE new booking
+router.post('/', async (req, res) => {
+    const transaction = await sequelize.transaction();
+
+    try {
+        console.log('📝 Creating new booking by user:', req.user.email);
+        console.log('📝 Request body:', req.body);
+
+        const {
+            booking_type = 'equipment',
+            lab_id,
+            equipment_id,
+            start_time,
+            end_time,
+            purpose,
+            date,
+        } = req.body;
+
+        // ✅ FIXED: Handle datetime construction with better time parsing
+        let finalStartTime, finalEndTime;
+
+        if (date && start_time && end_time) {
+            // Clean time format - handle both HH:MM and HH:MM:SS formats
+            const cleanStartTime = start_time.split(':').slice(0, 2).join(':');
+            const cleanEndTime = end_time.split(':').slice(0, 2).join(':');
+            
+            // Format: date="2024-01-20", start_time="09:00" or "09:00:00", end_time="11:00" or "11:00:00"
+            finalStartTime = new Date(`${date}T${cleanStartTime}:00`);
+            finalEndTime = new Date(`${date}T${cleanEndTime}:00`);
+        } else if (start_time && end_time) {
+            // ISO format
+            finalStartTime = new Date(start_time);
+            finalEndTime = new Date(end_time);
+        } else {
+            await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'Date, start time, and end time are required'
+                message: 'Please provide date, start_time, and end_time'
             });
         }
 
+        // Validation
+        if (isNaN(finalStartTime.getTime()) || isNaN(finalEndTime.getTime())) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid date or time format'
+            });
+        }
+
+        if (finalEndTime <= finalStartTime) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'End time must be after start time'
+            });
+        }
+
+        // Check if booking is in the past (allow 5 min buffer)
+        const now = new Date();
+        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+        if (finalStartTime < fiveMinutesAgo) {
+            await transaction.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot book for past dates/times'
+            });
+        }
+
+        // Validate booking type requirements
         if (booking_type === 'lab' && !lab_id) {
+            await transaction.rollback();
             return res.status(400).json({
                 success: false,
                 message: 'Lab ID is required for lab bookings'
             });
         }
 
-        if (booking_type === 'equipment' && !equipment_id) {
+        if (booking_type === 'equipment' && (!lab_id || !equipment_id)) {
+            await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                message: 'Equipment ID is required for equipment bookings'
+                message: 'Both Lab ID and Equipment ID are required for equipment bookings'
             });
         }
 
-        // Check for time conflicts
+        // Validate resources exist
+        if (lab_id) {
+            const lab = await Lab.findByPk(lab_id, { transaction });
+            if (!lab || !lab.is_active) {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: 'Lab not found or inactive'
+                });
+            }
+        }
+
+        if (equipment_id) {
+            const equipment = await Equipment.findByPk(equipment_id, { transaction });
+            if (!equipment || !equipment.is_active) {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: 'Equipment not found or inactive'
+                });
+            }
+
+            if (equipment.status !== 'available') {
+                await transaction.rollback();
+                return res.status(400).json({
+                    success: false,
+                    message: `Equipment is currently ${equipment.status}`
+                });
+            }
+        }
+
+        // Check for conflicts
         const conflictWhere = {
-            booking_date: date, // Map frontend 'date' to 'booking_date'
-            status: {
-                [Op.in]: ['pending', 'confirmed']
-            },
-            [Op.or]: [
-                {
-                    start_time: {
-                        [Op.between]: [start_time, end_time]
-                    }
-                },
-                {
-                    end_time: {
-                        [Op.between]: [start_time, end_time]
-                    }
-                },
-                {
-                    [Op.and]: [
-                        { start_time: { [Op.lte]: start_time } },
-                        { end_time: { [Op.gte]: end_time } }
-                    ]
-                }
+            status: { [Op.in]: ['pending', 'confirmed'] },
+            [Op.and]: [
+                { start_time: { [Op.lt]: finalEndTime } },
+                { end_time: { [Op.gt]: finalStartTime } }
             ]
         };
 
-        // Add specific conflict check based on booking type
-        if (booking_type === 'lab') {
+        if (booking_type === 'lab' && lab_id) {
             conflictWhere.lab_id = lab_id;
-        } else {
+            conflictWhere.booking_type = 'lab';
+        } else if (booking_type === 'equipment' && equipment_id) {
             conflictWhere.equipment_id = equipment_id;
         }
 
         const conflictingBooking = await Booking.findOne({
-            where: conflictWhere
+            where: conflictWhere,
+            lock: transaction.LOCK.UPDATE,
+            transaction
         });
 
         if (conflictingBooking) {
+            console.log('❌ Booking conflict detected');
+            await transaction.rollback();
             return res.status(400).json({
                 success: false,
-                message: `Time slot is already booked for this ${booking_type}`
+                message: `Time slot is already booked`,
+                conflict: {
+                    start: conflictingBooking.start_time,
+                    end: conflictingBooking.end_time
+                }
             });
         }
 
-        // Create booking with correct field mapping
+        // Create booking
         const bookingData = {
-            user_id: req.user.id,
+            user_id: req.user.userId,
             booking_type,
-            lab_id: booking_type === 'lab' ? lab_id : (booking_type === 'equipment' && lab_id ? lab_id : null),
-            equipment_id: booking_type === 'equipment' ? equipment_id : null,
-            booking_date: date, // Map 'date' to 'booking_date'
-            start_time,
-            end_time,
-            purpose,
+            lab_id: lab_id ? parseInt(lab_id) : null,
+            equipment_id: equipment_id ? parseInt(equipment_id) : null,
+            start_time: finalStartTime,
+            end_time: finalEndTime,
+            purpose: purpose || '',
             status: 'pending'
         };
 
-        console.log('Creating booking with data:', bookingData);
+        console.log('📝 Creating booking with data:', bookingData);
 
-        const newBooking = await Booking.create(bookingData);
+        const newBooking = await Booking.create(bookingData, { transaction });
 
-        // Fetch the created booking with associations
+        await transaction.commit();
+
+        console.log('✅ Booking created with ID:', newBooking.id);
+
+        // Fetch with associations
         const bookingWithDetails = await Booking.findByPk(newBooking.id, {
             include: [
                 {
@@ -174,60 +387,25 @@ router.post('/', async (req, res) => {
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'name', 'email']
+                    attributes: ['id', 'name', 'email'],
+                    required: false
                 }
             ]
         });
 
-        console.log(`Booking created for user ${req.user.id}`);
-
         res.status(201).json({
             success: true,
             message: 'Booking created successfully',
-            data: { booking: bookingWithDetails }
+            data: {
+                booking: bookingWithDetails
+            }
         });
     } catch (error) {
-        console.error('Error creating booking:', error);
+        await transaction.rollback();
+        console.error('💥 Error creating booking:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to create booking',
-            error: error.message
-        });
-    }
-});
-
-// DELETE booking (cancel)
-router.delete('/:id', async (req, res) => {
-    try {
-        const booking = await Booking.findByPk(req.params.id);
-
-        if (!booking) {
-            return res.status(404).json({
-                success: false,
-                message: 'Booking not found'
-            });
-        }
-
-        // Check if user owns the booking or is admin
-        if (booking.user_id !== req.user.id && req.user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                message: 'Not authorized to cancel this booking'
-            });
-        }
-
-        // Delete the booking instead of updating status
-        await booking.destroy();
-
-        res.json({
-            success: true,
-            message: 'Booking cancelled successfully'
-        });
-    } catch (error) {
-        console.error('Error cancelling booking:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to cancel booking',
             error: error.message
         });
     }
@@ -253,7 +431,8 @@ router.get('/:id', async (req, res) => {
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'name', 'email']
+                    attributes: ['id', 'name', 'email'],
+                    required: false
                 }
             ]
         });
@@ -265,15 +444,131 @@ router.get('/:id', async (req, res) => {
             });
         }
 
+        if (req.user.role === 'student' && booking.user_id !== req.user.userId) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to view this booking'
+            });
+        }
+
         res.json({
             success: true,
             data: { booking }
         });
     } catch (error) {
-        console.error('Error fetching booking:', error);
+        console.error('💥 Error fetching booking:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch booking',
+            error: error.message
+        });
+    }
+});
+
+// UPDATE booking
+router.put('/:id', async (req, res) => {
+    try {
+        const booking = await Booking.findByPk(req.params.id);
+
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        if (booking.user_id !== req.user.userId && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to update this booking'
+            });
+        }
+
+        // Validate status transitions
+        if (req.body.status) {
+            const validTransitions = {
+                'pending': ['confirmed', 'cancelled'],
+                'confirmed': ['completed', 'cancelled'],
+                'cancelled': [],
+                'completed': []
+            };
+
+            if (!validTransitions[booking.status]?.includes(req.body.status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Cannot change status from ${booking.status} to ${req.body.status}`
+                });
+            }
+        }
+
+        const updateData = {};
+
+        if (req.body.purpose !== undefined) updateData.purpose = req.body.purpose;
+        if (req.body.status) updateData.status = req.body.status;
+
+        await booking.update(updateData);
+
+        const updatedBooking = await Booking.findByPk(req.params.id, {
+            include: [
+                { model: Equipment, as: 'equipment', required: false },
+                { model: Lab, as: 'lab', required: false },
+                { model: User, as: 'user', required: false }
+            ]
+        });
+
+        res.json({
+            success: true,
+            data: { booking: updatedBooking },
+            message: 'Booking updated successfully'
+        });
+    } catch (error) {
+        console.error('💥 Error updating booking:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update booking',
+            error: error.message
+        });
+    }
+});
+
+// DELETE (Cancel) booking
+router.delete('/:id', async (req, res) => {
+    try {
+        const booking = await Booking.findByPk(req.params.id);
+
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        if (booking.user_id !== req.user.userId && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to cancel this booking'
+            });
+        }
+
+        if (booking.status === 'cancelled' || booking.status === 'completed') {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot cancel ${booking.status} booking`
+            });
+        }
+
+        await booking.update({ status: 'cancelled' });
+
+        res.json({
+            success: true,
+            message: 'Booking cancelled successfully',
+            data: { booking }
+        });
+    } catch (error) {
+        console.error('💥 Error cancelling booking:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to cancel booking',
             error: error.message
         });
     }

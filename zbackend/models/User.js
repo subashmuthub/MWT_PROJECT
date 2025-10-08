@@ -1,4 +1,4 @@
-const { DataTypes } = require('sequelize');
+const { DataTypes, Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const { sequelize } = require('../config/database');
 
@@ -34,7 +34,8 @@ const User = sequelize.define('User', {
         }
     },
     role: {
-        type: DataTypes.ENUM('student', 'teacher', 'lab_assistant', 'admin'),
+        type: DataTypes.ENUM('student', 'teacher', 'lab_assistant', 'lab_technician', 'admin'),
+        allowNull: false,
         defaultValue: 'student'
     },
     student_id: {
@@ -52,23 +53,37 @@ const User = sequelize.define('User', {
     },
     is_active: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: true
     },
     is_email_verified: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: false
     },
     last_login: {
         type: DataTypes.DATE,
         allowNull: true
     },
-    created_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
+    // OAuth provider fields
+    google_id: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        unique: true
     },
-    updated_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
+    facebook_id: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        unique: true
+    },
+    github_id: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        unique: true
+    },
+    avatar_url: {
+        type: DataTypes.TEXT,
+        allowNull: true
     }
 }, {
     tableName: 'users',
@@ -76,14 +91,24 @@ const User = sequelize.define('User', {
     createdAt: 'created_at',
     updatedAt: 'updated_at',
 
-    // Default scope (excludes password)
+    indexes: [
+        { unique: true, fields: ['email'] },
+        { 
+            unique: true, 
+            fields: ['student_id'],
+            where: { student_id: { [Op.ne]: null } }
+        },
+        { fields: ['role'] },
+        { fields: ['is_active'] },
+        { fields: ['department'] }
+    ],
+
     defaultScope: {
         attributes: {
             exclude: ['password']
         }
     },
 
-    // Scopes
     scopes: {
         withPassword: {
             attributes: {}
@@ -91,26 +116,7 @@ const User = sequelize.define('User', {
     }
 });
 
-// ✅ CRITICAL FIX: Remove automatic password hashing hooks
-// The auth routes will handle password hashing manually to avoid conflicts
-
-// DISABLED: Automatic hashing to prevent double-hashing
-// User.beforeCreate(async (user) => {
-//     if (user.password) {
-//         const salt = await bcrypt.genSalt(12);
-//         user.password = await bcrypt.hash(user.password, salt);
-//     }
-// });
-
-// DISABLED: Automatic hashing on updates
-// User.beforeUpdate(async (user) => {
-//     if (user.changed('password')) {
-//         const salt = await bcrypt.genSalt(12);
-//         user.password = await bcrypt.hash(user.password, salt);
-//     }
-// });
-
-// ✅ NEW: Manual password hashing methods (use these when needed)
+// Manual password hashing method
 User.hashPassword = async function (plainPassword) {
     return await bcrypt.hash(plainPassword, 12);
 };
@@ -118,7 +124,6 @@ User.hashPassword = async function (plainPassword) {
 // Instance methods
 User.prototype.comparePassword = async function (candidatePassword) {
     try {
-        // Get the user with password included
         const userWithPassword = await User.unscoped().findByPk(this.id);
         return await bcrypt.compare(candidatePassword, userWithPassword.password);
     } catch (error) {

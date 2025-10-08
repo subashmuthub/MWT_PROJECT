@@ -1,14 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext();
-
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
-};
+// eslint-disable-next-line react-refresh/only-export-components
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -24,7 +17,7 @@ export const AuthProvider = ({ children }) => {
 
                 if (storedToken && storedUser) {
                     // Verify token is still valid
-                    const response = await fetch('http://localhost:5000/api/auth/verify', {
+                    const response = await fetch('/api/auth/verify', {
                         headers: {
                             'Authorization': `Bearer ${storedToken}`,
                             'Content-Type': 'application/json'
@@ -63,7 +56,7 @@ export const AuthProvider = ({ children }) => {
         try {
             console.log('Attempting login for:', email);
 
-            const response = await fetch('http://localhost:5000/api/auth/login', {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -99,7 +92,7 @@ export const AuthProvider = ({ children }) => {
         try {
             console.log('Attempting registration for:', email);
 
-            const response = await fetch('http://localhost:5000/api/auth/register', {
+            const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -143,7 +136,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
 
         // Optional: Call backend logout endpoint
-        fetch('http://localhost:5000/api/auth/logout', {
+        fetch('/api/auth/logout', {
             method: 'POST',
             headers: {
                 'Authorization': token ? `Bearer ${token}` : '',

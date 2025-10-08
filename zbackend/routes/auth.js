@@ -6,10 +6,9 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-// JWT Secret (in production, use environment variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
 
-// Validation middleware
+// ✅ FIXED: Added lab_technician role
 const registerValidation = [
     body('name')
         .trim()
@@ -23,7 +22,7 @@ const registerValidation = [
         .isLength({ min: 6 })
         .withMessage('Password must be at least 6 characters long'),
     body('role')
-        .isIn(['student', 'teacher', 'lab_assistant', 'admin'])
+        .isIn(['student', 'teacher', 'lab_assistant', 'lab_technician', 'admin'])
         .withMessage('Invalid role')
 ];
 
@@ -37,7 +36,6 @@ const loginValidation = [
         .withMessage('Password is required')
 ];
 
-// Helper function to generate JWT token
 const generateToken = (user) => {
     return jwt.sign(
         {
@@ -51,8 +49,6 @@ const generateToken = (user) => {
 };
 
 // @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
 router.post('/register', registerValidation, async (req, res) => {
     try {
         console.log('📝 Registration attempt:', {
@@ -61,7 +57,6 @@ router.post('/register', registerValidation, async (req, res) => {
             role: req.body.role
         });
 
-        // Check validation results
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             console.log('❌ Validation errors:', errors.array());
@@ -74,7 +69,6 @@ router.post('/register', registerValidation, async (req, res) => {
 
         const { name, email, password, role } = req.body;
 
-        // Check if user already exists
         const existingUser = await User.findOne({
             where: { email: email.toLowerCase() }
         });
@@ -87,17 +81,14 @@ router.post('/register', registerValidation, async (req, res) => {
             });
         }
 
-        // Hash password manually (since we disabled automatic hashing in the model)
         console.log('🔒 Hashing password...');
-        const saltRounds = 12;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create new user with hashed password
         console.log('👤 Creating new user...');
         const newUser = await User.create({
             name: name.trim(),
             email: email.toLowerCase(),
-            password: hashedPassword, // Store the hashed password
+            password: hashedPassword,
             role: role || 'student',
             is_active: true,
             is_email_verified: false
@@ -105,10 +96,8 @@ router.post('/register', registerValidation, async (req, res) => {
 
         console.log('✅ User created successfully:', newUser.id);
 
-        // Generate JWT token
         const token = generateToken(newUser);
 
-        // Return user data (without password) and token
         const userData = {
             id: newUser.id,
             name: newUser.name,
@@ -132,7 +121,6 @@ router.post('/register', registerValidation, async (req, res) => {
     } catch (error) {
         console.error('💥 Registration error:', error);
 
-        // Handle Sequelize validation errors
         if (error.name === 'SequelizeValidationError') {
             return res.status(400).json({
                 success: false,
@@ -144,7 +132,6 @@ router.post('/register', registerValidation, async (req, res) => {
             });
         }
 
-        // Handle unique constraint errors
         if (error.name === 'SequelizeUniqueConstraintError') {
             return res.status(400).json({
                 success: false,
@@ -161,13 +148,10 @@ router.post('/register', registerValidation, async (req, res) => {
 });
 
 // @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
 router.post('/login', loginValidation, async (req, res) => {
     try {
         console.log('🔐 Login attempt for:', req.body.email);
 
-        // Check validation results
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             console.log('❌ Validation errors:', errors.array());
@@ -180,7 +164,6 @@ router.post('/login', loginValidation, async (req, res) => {
 
         const { email, password } = req.body;
 
-        // Find user with password included (using unscoped to get password)
         console.log('👤 Finding user with password...');
         const user = await User.unscoped().findOne({
             where: {
@@ -197,7 +180,6 @@ router.post('/login', loginValidation, async (req, res) => {
             });
         }
 
-        // Compare password
         console.log('🔒 Comparing password...');
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
@@ -209,13 +191,10 @@ router.post('/login', loginValidation, async (req, res) => {
             });
         }
 
-        // Update last login
         await user.update({ last_login: new Date() });
 
-        // Generate JWT token
         const token = generateToken(user);
 
-        // Return user data (without password) and token
         const userData = {
             id: user.id,
             name: user.name,
@@ -247,14 +226,8 @@ router.post('/login', loginValidation, async (req, res) => {
 });
 
 // @route   POST /api/auth/logout
-// @desc    Logout user (client-side token removal)
-// @access  Public
 router.post('/logout', (req, res) => {
     console.log('🚪 Logout request received');
-
-    // In a JWT implementation, logout is typically handled client-side by removing the token
-    // For more security, you could implement token blacklisting here
-
     res.json({
         success: true,
         message: 'Logout successful'
@@ -262,8 +235,6 @@ router.post('/logout', (req, res) => {
 });
 
 // @route   GET /api/auth/verify
-// @desc    Verify token and get user info
-// @access  Private
 router.get('/verify', async (req, res) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
@@ -275,10 +246,8 @@ router.get('/verify', async (req, res) => {
             });
         }
 
-        // Verify token
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        // Get user from database
         const user = await User.findByPk(decoded.userId);
 
         if (!user || !user.is_active) {
@@ -311,8 +280,6 @@ router.get('/verify', async (req, res) => {
 });
 
 // @route   GET /api/auth/test
-// @desc    Test auth routes
-// @access  Public
 router.get('/test', (req, res) => {
     res.json({
         success: true,
@@ -325,6 +292,16 @@ router.get('/test', (req, res) => {
             verify: 'GET /api/auth/verify',
             test: 'GET /api/auth/test'
         }
+    });
+});
+
+// OAuth status endpoint
+router.get('/oauth/status', (req, res) => {
+    res.json({
+        success: true,
+        message: 'OAuth configuration endpoints available',
+        providers: ['google', 'facebook', 'github'],
+        configured: process.env.GOOGLE_CLIENT_ID ? true : false
     });
 });
 

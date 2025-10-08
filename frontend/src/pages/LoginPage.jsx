@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 function LoginPage() {
     const [formData, setFormData] = useState({
@@ -62,22 +62,8 @@ function LoginPage() {
                 const userRole = result.user.role
                 console.log('🔀 Routing user based on role:', userRole)
 
-                switch (userRole) {
-                    case 'admin':
-                        navigate('/admin-dashboard', { replace: true })
-                        break
-                    case 'teacher':
-                        navigate('/teacher-dashboard', { replace: true })
-                        break
-                    case 'student':
-                        navigate('/student-dashboard', { replace: true })
-                        break
-                    case 'lab_assistant':
-                        navigate('/lab-assistant-dashboard', { replace: true })
-                        break
-                    default:
-                        navigate('/dashboard', { replace: true })
-                }
+                // All users go to the main dashboard which handles role-based features
+                navigate('/dashboard', { replace: true })
             } else {
                 console.error('❌ Login failed:', result.message)
                 setError(result.message || 'Login failed. Please check your credentials.')

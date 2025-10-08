@@ -1,4 +1,3 @@
-// models/Order.js - Updated for MySQL
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
@@ -28,7 +27,8 @@ const Order = sequelize.define('Order', {
         type: DataTypes.INTEGER,
         allowNull: false,
         validate: {
-            min: 1
+            min: 1,
+            max: 10000
         }
     },
     unit_price: {
@@ -46,14 +46,14 @@ const Order = sequelize.define('Order', {
         }
     },
     status: {
-        type: DataTypes.ENUM('Pending', 'Approved', 'Ordered', 'Delivered', 'Cancelled'),
+        type: DataTypes.ENUM('pending', 'approved', 'ordered', 'delivered', 'cancelled'),
         allowNull: false,
-        defaultValue: 'Pending'
+        defaultValue: 'pending'
     },
     priority: {
-        type: DataTypes.ENUM('Low', 'Medium', 'High'),
+        type: DataTypes.ENUM('low', 'medium', 'high'),
         allowNull: false,
-        defaultValue: 'Medium'
+        defaultValue: 'medium'
     },
     order_date: {
         type: DataTypes.DATEONLY,
@@ -78,13 +78,46 @@ const Order = sequelize.define('Order', {
         references: {
             model: 'users',
             key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'RESTRICT'
     }
 }, {
     tableName: 'orders',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    validate: {
+        expectedDeliveryAfterOrder() {
+            if (this.expected_delivery && this.order_date) {
+                if (new Date(this.expected_delivery) < new Date(this.order_date)) {
+                    throw new Error('Expected delivery cannot be before order date');
+                }
+            }
+        },
+        actualDeliveryAfterOrder() {
+            if (this.actual_delivery && this.order_date) {
+                if (new Date(this.actual_delivery) < new Date(this.order_date)) {
+                    throw new Error('Actual delivery cannot be before order date');
+                }
+            }
+        },
+        totalAmountMatches() {
+            const calculatedTotal = this.quantity * parseFloat(this.unit_price);
+            const totalAmount = parseFloat(this.total_amount);
+            if (Math.abs(calculatedTotal - totalAmount) > 0.01) {
+                throw new Error('Total amount must equal quantity × unit price');
+            }
+        }
+    },
+    indexes: [
+        { fields: ['created_by'] },
+        { fields: ['status'] },
+        { fields: ['priority'] },
+        { fields: ['order_date'] },
+        { fields: ['expected_delivery'] },
+        { fields: ['supplier'] }
+    ]
 });
 
 module.exports = Order;

@@ -1,169 +1,393 @@
-// routes/chatbot.js - Completely Free Chatbot
+// routes/chatbot.js - Complete Corrected Version
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
+const { sequelize } = require('../config/database');
 
-// Comprehensive knowledge base
-const labKnowledgeBase = {
-    // Greetings
-    greetings: {
-        patterns: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'start'],
-        responses: [
-            "Hello! 👋 I'm your Lab Assistant. I can help you with lab bookings, equipment info, and answer questions about our lab system. What would you like to know?",
-            "Hi there! 🔬 I'm here to help with anything lab-related. How can I assist you today?",
-            "Welcome! I can help you navigate the lab management system. What do you need help with?"
-        ]
-    },
-
-    // Lab Booking
-    booking: {
-        patterns: ['book', 'booking', 'reserve', 'schedule', 'appointment'],
-        responses: [
-            "To book a lab:\n1️⃣ Go to 'Bookings' section\n2️⃣ Select your desired lab\n3️⃣ Choose date and time\n4️⃣ Confirm booking\n\nYou can also use the Calendar view to see availability!",
-            "Lab booking is easy! Navigate to Calendar → Select Lab → Choose Time → Confirm. Need help with a specific step?",
-            "I can guide you through booking! Which lab are you interested in? Computer Lab, Chemistry Lab, or another type?"
-        ]
-    },
-
-    // Lab Availability
-    availability: {
-        patterns: ['available', 'free', 'when', 'time', 'open'],
-        responses: [
-            "To check lab availability:\n📅 Go to Calendar section\n🔍 Select the date you need\n👀 Green slots = Available\n🔴 Red slots = Booked",
-            "Lab availability changes in real-time! Check the Calendar section for the most up-to-date schedule.",
-            "Which specific lab and date are you checking? The Calendar view shows all available time slots."
-        ]
-    },
-
-    // Equipment
-    equipment: {
-        patterns: ['equipment', 'tools', 'devices', 'machines', 'computer', 'microscope'],
-        responses: [
-            "Our labs have different equipment:\n🖥️ Computer Labs: PCs, Software, Printers\n🧪 Chemistry Labs: Fume hoods, Analytical instruments\n🔬 Biology Labs: Microscopes, Incubators\n\nCheck the Equipment section for detailed lists!",
-            "Equipment varies by lab type. Visit the Equipment section to see what's available in each lab. What specific equipment do you need?",
-            "Looking for specific equipment? Each lab has detailed equipment lists in the Equipment section. What are you working on?"
-        ]
-    },
-
-    // Safety
-    safety: {
-        patterns: ['safety', 'rules', 'protocol', 'ppe', 'emergency'],
-        responses: [
-            "Safety First! 🛡️\n• Always wear required PPE\n• Follow lab-specific protocols\n• Report incidents immediately\n• Complete safety training\n• Know emergency procedures",
-            "Lab safety is crucial! Check each lab's specific safety guidelines before use. Have you completed the required safety training?",
-            "Safety protocols vary by lab type. Chemistry labs require different PPE than computer labs. Which lab are you using?"
-        ]
-    },
-
-    // Cancellation
-    cancellation: {
-        patterns: ['cancel', 'delete', 'remove', 'change'],
-        responses: [
-            "To cancel a booking:\n1️⃣ Go to 'My Bookings'\n2️⃣ Find your booking\n3️⃣ Click 'Cancel'\n4️⃣ Confirm cancellation\n\n⚠️ Please cancel at least 2 hours before your scheduled time!",
-            "Need to cancel? Go to My Bookings → Find your reservation → Cancel. Remember the 2-hour cancellation policy!",
-            "Cancellations should be made at least 2 hours in advance. Check 'My Bookings' to manage your reservations."
-        ]
-    },
-
-    // Lab Types
-    lab_types: {
-        patterns: ['computer lab', 'chemistry lab', 'biology lab', 'physics lab', 'research lab'],
-        responses: [
-            "We have several lab types:\n🖥️ Computer Labs - Programming, Software development\n🧪 Chemistry Labs - Chemical experiments, Analysis\n🔬 Biology Labs - Life sciences, Microscopy\n⚡ Physics Labs - Experiments, Measurements\n🔬 Research Labs - Advanced projects",
-            "Each lab type serves different purposes. Which field are you working in? I can provide specific information about that lab type.",
-            "Our labs are equipped for different disciplines. What subject area do you need the lab for?"
-        ]
-    },
-
-    // Training
-    training: {
-        patterns: ['training', 'course', 'learn', 'how to use'],
-        responses: [
-            "Lab training is important! 📚\n• Check Training section for available courses\n• Complete required safety training\n• Equipment-specific training available\n• Online and in-person options",
-            "Need training? Visit the Training section to see available courses and schedules. Safety training is mandatory for most labs!",
-            "Training courses are available for different equipment and lab types. What specific training do you need?"
-        ]
-    },
-
-    // Contact/Support
-    support: {
-        patterns: ['help', 'support', 'contact', 'problem', 'issue', 'trouble'],
-        responses: [
-            "Need more help? 🆘\n📧 Email: support@labmanagement.com\n📞 Phone: (555) 123-4567\n🕒 Hours: Mon-Fri 8AM-6PM\n💬 You can also ask me more questions!",
-            "I'm here to help! If you need human assistance, contact our support team. What specific issue are you facing?",
-            "Having trouble? Try describing your problem in more detail, or contact our support team for personalized help."
-        ]
-    },
-
-    // Policies
-    policies: {
-        patterns: ['policy', 'rule', 'regulation', 'allowed', 'permitted'],
-        responses: [
-            "Lab Policies:\n• Max 2-hour booking sessions\n• Cancel 2+ hours in advance\n• Complete required training\n• Follow safety protocols\n• No food/drinks in labs\n• Report any issues immediately",
-            "Our policies ensure fair access and safety for everyone. Which specific policy do you want to know about?",
-            "Lab policies are in place for everyone's safety and fair access. Check the Policies section for complete details."
-        ]
-    }
-};
-
-// Quick actions for common tasks
-const quickActions = {
-    'book computer lab': "To book a Computer Lab: Go to Bookings → Select Computer Lab → Choose your time slot. Computer labs are great for programming and software work!",
-    'check my bookings': "To see your bookings: Go to 'My Bookings' section or check the Calendar view. You'll see all your upcoming reservations there!",
-    'cancel booking': "To cancel: My Bookings → Find booking → Click Cancel → Confirm. Remember to cancel at least 2 hours before your scheduled time!",
-    'lab hours': "Lab hours vary by type:\n🖥️ Computer Labs: 24/7 (with access card)\n🧪 Chemistry Labs: 8AM-10PM\n🔬 Biology Labs: 6AM-11PM\nCheck specific lab details for exact hours!",
-    'emergency': "🚨 EMERGENCY: Call Campus Security (555) 911 or 911\nFor non-emergencies: Contact lab support (555) 123-4567\nAlways prioritize safety!"
-};
-
-// Enhanced response generation
-function generateResponse(message) {
-    const lowerMessage = message.toLowerCase().trim();
-
-    // Check for quick actions first
-    for (const [action, response] of Object.entries(quickActions)) {
-        if (lowerMessage.includes(action.toLowerCase())) {
-            return response;
-        }
+class IntelligentLabAssistant {
+    constructor() {
+        this.queryParsers = {
+            count: {
+                patterns: ['how many', 'total', 'count of', 'number of'],
+                entities: ['labs', 'equipment', 'bookings', 'computers', 'microscopes']
+            },
+            availability: {
+                patterns: ['available', 'free', 'open', 'vacant', 'not booked'],
+                entities: ['labs', 'equipment', 'computers', 'today', 'tomorrow', 'now']
+            },
+            specifications: {
+                patterns: ['specs', 'specification', 'details', 'what is', 'tell me about'],
+                entities: ['computer', 'laptop', 'server', 'microscope', 'equipment']
+            },
+            search: {
+                patterns: ['find', 'search', 'show me', 'list', 'which'],
+                entities: ['i7', 'i5', 'i9', 'ram', 'ssd', 'hdd', 'gpu', 'processor', 'cpu']
+            },
+            location: {
+                patterns: ['where is', 'location of', 'find location', 'which room'],
+                entities: ['lab', 'equipment', 'computer']
+            },
+            status: {
+                patterns: ['status of', 'condition', 'working', 'broken', 'maintenance'],
+                entities: ['equipment', 'lab', 'computer']
+            }
+        };
     }
 
-    // Check knowledge base
-    for (const [category, config] of Object.entries(labKnowledgeBase)) {
-        for (const pattern of config.patterns) {
-            if (lowerMessage.includes(pattern)) {
-                const responses = config.responses;
-                return responses[Math.floor(Math.random() * responses.length)];
+    async parseQuery(message) {
+        const lowerMessage = message.toLowerCase();
+        let queryType = 'general';
+        let entities = [];
+        let specificItem = null;
+        let confidence = 0.5;
+
+        // Determine query type
+        for (const [type, config] of Object.entries(this.queryParsers)) {
+            for (const pattern of config.patterns) {
+                if (lowerMessage.includes(pattern)) {
+                    queryType = type;
+                    confidence = 0.8;
+                    break;
+                }
             }
         }
+
+        // Extract entities
+        for (const [type, config] of Object.entries(this.queryParsers)) {
+            for (const entity of config.entities) {
+                if (lowerMessage.includes(entity)) {
+                    entities.push(entity);
+                    confidence += 0.1;
+                }
+            }
+        }
+
+        // Extract specific equipment names (like computer001, microscope02)
+        const equipmentPattern = /([a-zA-Z]+\d+)/g;
+        const matches = message.match(equipmentPattern);
+        if (matches) {
+            specificItem = matches[0];
+            confidence += 0.2;
+        }
+
+        // Extract lab types
+        const labPattern = /(lab\s*\w*\d*|chemistry|biology|computer|physics|research)/gi;
+        const labMatches = message.match(labPattern);
+        if (labMatches) {
+            entities.push(...labMatches);
+        }
+
+        return {
+            queryType,
+            entities,
+            specificItem,
+            confidence: Math.min(confidence, 1.0),
+            originalMessage: message
+        };
     }
 
-    // Handle specific questions
-    if (lowerMessage.includes('how many') || lowerMessage.includes('what time')) {
-        return "For specific numbers and times, please check the relevant section in the app (Calendar, Equipment, etc.) for the most up-to-date information!";
+    generateQuery(parsedQuery) {
+        const { queryType, entities, specificItem } = parsedQuery;
+
+        switch (queryType) {
+            case 'count':
+                return this.generateCountQuery(entities);
+            case 'availability':
+                return this.generateAvailabilityQuery(entities);
+            case 'specifications':
+                return this.generateSpecQuery(specificItem, entities);
+            case 'search':
+                return this.generateSearchQuery(entities);
+            case 'location':
+                return this.generateLocationQuery(specificItem, entities);
+            case 'status':
+                return this.generateStatusQuery(specificItem, entities);
+            default:
+                return null;
+        }
     }
 
-    if (lowerMessage.includes('where') || lowerMessage.includes('location')) {
-        return "Lab locations are shown in the Lab Management section. Each lab has detailed location information including building and room numbers!";
+    generateCountQuery(entities) {
+        if (entities.includes('labs')) {
+            return {
+                // Fixed: use is_active instead of status
+                query: 'SELECT COUNT(*) as count, lab_type FROM labs WHERE is_active = 1 GROUP BY lab_type',
+                type: 'lab_count'
+            };
+        }
+        if (entities.includes('equipment')) {
+            return {
+                query: `SELECT COUNT(*) as count, category as equipment_type FROM equipment GROUP BY category`,
+                type: 'equipment_count'
+            };
+        }
+        if (entities.includes('computers')) {
+            return {
+                query: `SELECT COUNT(*) as count, 
+                       COUNT(CASE WHEN status = 'available' THEN 1 END) as available,
+                       COUNT(CASE WHEN status = 'in_use' THEN 1 END) as in_use,
+                       COUNT(CASE WHEN status = 'maintenance' THEN 1 END) as maintenance
+                       FROM equipment WHERE category = 'computer'`,
+                type: 'computer_count'
+            };
+        }
+        return null;
     }
 
-    if (lowerMessage.includes('who') || lowerMessage.includes('contact')) {
-        return "For contacts: Check the lab details or contact our support team at support@labmanagement.com or (555) 123-4567.";
+    generateAvailabilityQuery(entities) {
+        if (entities.includes('labs')) {
+            return {
+                // Safe query that only uses labs table
+                query: `SELECT 
+                       id,
+                       name,
+                       description,
+                       location,
+                       lab_type,
+                       capacity,
+                       'available' as availability_status
+                   FROM labs 
+                   WHERE is_active = 1
+                   ORDER BY name`,
+                type: 'lab_availability'
+            };
+        }
+
+        if (entities.includes('equipment') || entities.includes('computers')) {
+            // Check if equipment table exists first
+            return {
+                query: `SELECT 
+                       'No equipment data available yet' as message`,
+                type: 'equipment_availability'
+            };
+        }
+
+        return null;
     }
 
-    // Default responses with helpful suggestions
-    const defaultResponses = [
-        "I'm not sure about that specific question, but I can help with:\n• Lab bookings and scheduling\n• Equipment information\n• Safety protocols\n• General lab policies\n\nTry asking about one of these topics!",
-        "Could you rephrase that? I can help with lab bookings, equipment info, safety rules, or general questions about the lab system.",
-        "I didn't quite understand. Here are some things I can help with:\n📅 Booking labs\n🔧 Equipment information\n🛡️ Safety protocols\n📋 Lab policies\n\nWhat would you like to know?",
-        "I'm still learning! I can definitely help with lab bookings, equipment, safety, and policies. Could you ask about one of these areas?"
-    ];
+    generateSpecQuery(specificItem, entities) {
+        if (specificItem) {
+            return {
+                query: `SELECT e.*, es.*, l.name as lab_name, l.location as lab_location
+                       FROM equipment e
+                       LEFT JOIN equipment_specifications es ON e.id = es.equipment_id
+                       JOIN labs l ON e.lab_id = l.id
+                       WHERE (e.name = '${specificItem}' OR e.serial_number = '${specificItem}')
+                       AND l.is_active = 1`,
+                type: 'specific_equipment'
+            };
+        }
 
-    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+        return {
+            query: `SELECT e.*, es.*, l.name as lab_name
+                   FROM equipment e
+                   LEFT JOIN equipment_specifications es ON e.id = es.equipment_id
+                   JOIN labs l ON e.lab_id = l.id
+                   WHERE e.category IN ('computer', 'laptop', 'server')
+                   AND l.is_active = 1
+                   ORDER BY e.name`,
+            type: 'equipment_specs'
+        };
+    }
+
+    generateSearchQuery(entities) {
+        let conditions = [];
+
+        if (entities.some(e => ['i7', 'i5', 'i9', 'cpu', 'processor'].includes(e))) {
+            const processor = entities.find(e => ['i7', 'i5', 'i9'].includes(e));
+            if (processor) {
+                conditions.push(`es.cpu LIKE '%${processor}%'`);
+            }
+        }
+
+        if (entities.includes('ram')) {
+            conditions.push('es.ram IS NOT NULL');
+        }
+
+        if (entities.includes('ssd') || entities.includes('hdd')) {
+            const storageType = entities.includes('ssd') ? 'ssd' : 'hdd';
+            conditions.push(`es.storage LIKE '%${storageType}%'`);
+        }
+
+        const whereClause = conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : '';
+
+        return {
+            query: `SELECT e.*, es.*, l.name as lab_name, l.location as lab_location
+                   FROM equipment e
+                   LEFT JOIN equipment_specifications es ON e.id = es.equipment_id
+                   JOIN labs l ON e.lab_id = l.id
+                   WHERE e.category IN ('computer', 'laptop', 'server') 
+                   AND l.is_active = 1 ${whereClause}
+                   ORDER BY e.name`,
+            type: 'equipment_search'
+        };
+    }
+
+    generateLocationQuery(specificItem, entities) {
+        if (specificItem) {
+            return {
+                query: `SELECT e.name, e.category, l.name as lab_name, 
+                       l.location as lab_location, l.description
+                       FROM equipment e
+                       JOIN labs l ON e.lab_id = l.id
+                       WHERE (e.name = '${specificItem}' OR e.serial_number = '${specificItem}')
+                       AND l.is_active = 1`,
+                type: 'equipment_location'
+            };
+        }
+        return null;
+    }
+
+    generateStatusQuery(specificItem, entities) {
+        if (specificItem) {
+            return {
+                query: `SELECT e.*, l.name as lab_name
+                       FROM equipment e
+                       JOIN labs l ON e.lab_id = l.id
+                       WHERE (e.name = '${specificItem}' OR e.serial_number = '${specificItem}')
+                       AND l.is_active = 1`,
+                type: 'equipment_status'
+            };
+        }
+        return null;
+    }
 }
 
-// Chat endpoint
+const labAssistant = new IntelligentLabAssistant();
+
+// Response formatters
+const responseFormatters = {
+    lab_count: (data) => {
+        if (!data || data.length === 0) {
+            return "📊 No active labs found in the system.";
+        }
+        const total = data.reduce((sum, item) => sum + item.count, 0);
+        const breakdown = data.map(item => `• ${item.lab_type.replace('_', ' ')}: ${item.count}`).join('\n');
+        return `📊 **Lab Count**: You have **${total} active labs** in total:\n\n${breakdown}`;
+    },
+
+    lab_availability: (data) => {
+        if (!data || data.length === 0) {
+            return "🏢 No active labs found in the system.";
+        }
+
+        let response = `🏢 **Lab Availability** (${data.length} labs):\n\n`;
+
+        data.forEach(lab => {
+            response += `**${lab.name}**\n`;
+            response += `📍 Location: ${lab.location || 'Not specified'}\n`;
+            response += `🏷️ Type: ${lab.lab_type.replace('_', ' ')}\n`;
+            response += `👥 Capacity: ${lab.capacity || 'Not specified'}\n`;
+            response += `📊 Status: ${lab.availability_status}\n`;
+
+            if (lab.availability_status === 'booked') {
+                response += `👤 Booked by: ${lab.booked_by}\n`;
+                response += `⏰ Until: ${new Date(lab.end_time).toLocaleString()}\n`;
+            }
+            response += `\n`;
+        });
+
+        return response;
+    },
+
+    equipment_count: (data) => {
+        if (!data || data.length === 0) {
+            return "🔧 No equipment found in the system.";
+        }
+        const total = data.reduce((sum, item) => sum + item.count, 0);
+        const breakdown = data.map(item => `• ${item.equipment_type}: ${item.count}`).join('\n');
+        return `🔧 **Equipment Count**: **${total} total equipment**:\n\n${breakdown}`;
+    },
+
+    computer_count: (data) => {
+        if (!data || data.length === 0) {
+            return "💻 No computers found in the system.";
+        }
+        const item = data[0];
+        return `💻 **Computer Inventory**:\n\n• **Total**: ${item.count} computers\n• **Available**: ${item.available}\n• **In Use**: ${item.in_use}\n• **Maintenance**: ${item.maintenance}`;
+    },
+
+    equipment_availability: (data) => {
+        if (!data || data.length === 0) {
+            return "🔧 No available equipment found.";
+        }
+
+        let response = `🔧 **Available Equipment** (${data.length} items):\n\n`;
+
+        data.forEach(equipment => {
+            response += `**${equipment.name}**\n`;
+            response += `📍 ${equipment.lab_name} - ${equipment.lab_location}\n`;
+            response += `🏷️ Type: ${equipment.category}\n`;
+            response += `📊 Status: ${equipment.status}\n\n`;
+        });
+
+        return response;
+    },
+
+    specific_equipment: (data) => {
+        if (!data || data.length === 0) {
+            return `❌ Equipment not found. Please check the name and try again.`;
+        }
+
+        const equipment = data[0];
+        let response = `🔧 **${equipment.name}** Details:\n\n`;
+        response += `📍 **Location**: ${equipment.lab_name} - ${equipment.lab_location}\n`;
+        response += `🏷️ **Type**: ${equipment.category}\n`;
+        response += `📊 **Status**: ${equipment.status}\n`;
+
+        if (equipment.cpu) response += `🖥️ **CPU**: ${equipment.cpu}\n`;
+        if (equipment.ram) response += `💾 **RAM**: ${equipment.ram}\n`;
+        if (equipment.storage) response += `💽 **Storage**: ${equipment.storage}\n`;
+        if (equipment.gpu) response += `🎮 **GPU**: ${equipment.gpu}\n`;
+        if (equipment.operating_system) response += `💿 **OS**: ${equipment.operating_system}\n`;
+        if (equipment.serial_number) response += `🔢 **Serial**: ${equipment.serial_number}\n`;
+        if (equipment.purchase_date) response += `📅 **Purchase Date**: ${new Date(equipment.purchase_date).toLocaleDateString()}\n`;
+
+        return response;
+    },
+
+    equipment_search: (data) => {
+        if (!data || data.length === 0) {
+            return `❌ No equipment found matching your criteria.`;
+        }
+
+        let response = `🔍 **Search Results** (${data.length} found):\n\n`;
+
+        data.forEach(equipment => {
+            response += `**${equipment.name}**\n`;
+            response += `📍 ${equipment.lab_name} - ${equipment.lab_location}\n`;
+            if (equipment.cpu) response += `🖥️ CPU: ${equipment.cpu}\n`;
+            if (equipment.ram) response += `💾 RAM: ${equipment.ram}\n`;
+            if (equipment.storage) response += `💽 Storage: ${equipment.storage}\n`;
+            response += `📊 Status: ${equipment.status}\n\n`;
+        });
+
+        return response;
+    },
+
+    equipment_location: (data) => {
+        if (!data || data.length === 0) {
+            return `❌ Equipment not found. Please check the name and try again.`;
+        }
+
+        const equipment = data[0];
+        return `📍 **${equipment.name}** Location:\n\n🏢 **Lab**: ${equipment.lab_name}\n📍 **Address**: ${equipment.lab_location}\n🏷️ **Type**: ${equipment.category}`;
+    },
+
+    equipment_status: (data) => {
+        if (!data || data.length === 0) {
+            return `❌ Equipment not found. Please check the name and try again.`;
+        }
+
+        const equipment = data[0];
+        return `📊 **${equipment.name}** Status:\n\n📊 **Current Status**: ${equipment.status}\n📍 **Location**: ${equipment.lab_name}\n🏷️ **Type**: ${equipment.category}`;
+    }
+};
+
+// Main chat endpoint
 router.post('/chat', authenticateToken, async (req, res) => {
     try {
-        const { message, sessionId } = req.body;
+        const { message } = req.body;
         const userId = req.user.id;
 
         if (!message || !message.trim()) {
@@ -173,24 +397,55 @@ router.post('/chat', authenticateToken, async (req, res) => {
             });
         }
 
-        // Get or create conversation
-        let conversation = await getOrCreateConversation(userId, sessionId);
+        // Parse the user's question
+        const parsedQuery = await labAssistant.parseQuery(message);
+        console.log('Parsed Query:', parsedQuery);
 
-        // Save user message
-        await saveMessage(conversation.id, message, 'user');
+        // Generate appropriate database query
+        const dbQuery = labAssistant.generateQuery(parsedQuery);
 
-        // Generate response
-        const response = generateResponse(message);
+        let response;
+        let suggestions = [];
 
-        // Save bot response
-        await saveMessage(conversation.id, response, 'bot');
+        if (dbQuery) {
+            try {
+                // Execute the database query using Sequelize
+                const [results] = await sequelize.query(dbQuery.query);
+                console.log('Query Results:', results);
+
+                // Format the response
+                const formatter = responseFormatters[dbQuery.type];
+                if (formatter) {
+                    response = formatter(results);
+                } else {
+                    response = `Here's what I found:\n\n${JSON.stringify(results, null, 2)}`;
+                }
+
+                // Generate contextual suggestions
+                suggestions = generateContextualSuggestions(dbQuery.type, parsedQuery);
+
+            } catch (dbError) {
+                console.error('Database query error:', dbError);
+                response = `I'm having trouble accessing the database right now. Please try again or contact support.`;
+            }
+        } else {
+            // Handle general conversation
+            response = await handleGeneralQuery(message, userId);
+            suggestions = ['How many labs do I have?', 'Show available equipment', 'List all computers'];
+        }
+
+        // Log the interaction
+        await logChatInteraction(userId, message, parsedQuery, response);
 
         res.json({
             success: true,
             data: {
                 response,
-                sessionId: conversation.session_id,
-                suggestions: getSuggestions(message)
+                suggestions,
+                intent: parsedQuery.queryType,
+                entities: parsedQuery.entities,
+                specificItem: parsedQuery.specificItem,
+                confidence: parsedQuery.confidence
             }
         });
 
@@ -198,44 +453,71 @@ router.post('/chat', authenticateToken, async (req, res) => {
         console.error('Chatbot error:', error);
         res.status(500).json({
             success: false,
-            message: "Sorry, I'm having trouble right now. Please try again or contact support!"
+            message: "I'm experiencing technical difficulties. Please try again."
         });
     }
 });
 
-// Generate contextual suggestions
-function getSuggestions(message) {
+// Helper functions
+function generateContextualSuggestions(queryType, parsedQuery) {
+    switch (queryType) {
+        case 'lab_count':
+            return ['Show available labs', 'List lab equipment', 'Check lab schedules'];
+        case 'equipment_count':
+            return ['Find specific equipment', 'Check equipment status', 'Search by specifications'];
+        case 'specific_equipment':
+            return ['Where is this equipment?', 'Check availability', 'View similar equipment'];
+        case 'equipment_search':
+            return ['Show more details', 'Check availability', 'Find in specific lab'];
+        default:
+            return ['How many labs?', 'Available equipment?', 'Find computer with i7'];
+    }
+}
+
+async function handleGeneralQuery(message, userId) {
     const lowerMessage = message.toLowerCase();
 
-    if (lowerMessage.includes('book')) {
-        return ['Check lab availability', 'View my bookings', 'Lab booking policies'];
+    if (lowerMessage.includes('hello') || lowerMessage.includes('hi')) {
+        const [userRows] = await sequelize.query('SELECT name FROM users WHERE id = ?', {
+            replacements: [userId]
+        });
+        const userName = userRows[0]?.name || 'there';
+        return `Hello ${userName}! 👋 I can help you find real-time information about:\n\n🏢 **Labs**: Count, availability, details\n🔧 **Equipment**: Specifications, location, status\n🔍 **Search**: Find equipment by specs (i7, RAM, etc.)\n📊 **Status**: Real-time availability and conditions\n\nAsk me anything like:\n• "How many labs do I have?"\n• "Is computer001 an i7?"\n• "Show available equipment"\n• "Find all i7 computers"`;
     }
 
-    if (lowerMessage.includes('equipment')) {
-        return ['Computer lab equipment', 'Chemistry lab tools', 'Safety equipment'];
+    if (lowerMessage.includes('help')) {
+        return `🤖 **I can help you with real-time lab data**:\n\n📊 **Counts**: "How many labs/computers/equipment?"\n🔍 **Search**: "Find equipment with i7", "Show SSD computers"\n📍 **Location**: "Where is computer001?"\n📈 **Status**: "Status of microscope02"\n🔧 **Specs**: "What are the specs of computer001?"\n⏰ **Availability**: "What labs are available?"\n\n**Try asking specific questions about your actual equipment!**`;
     }
 
-    if (lowerMessage.includes('safety')) {
-        return ['PPE requirements', 'Emergency procedures', 'Training courses'];
-    }
-
-    return ['How to book a lab', 'Lab availability', 'Equipment information', 'Safety protocols'];
+    return `I can help you find real-time information about your labs and equipment. Try asking:\n\n• How many labs do I have?\n• What equipment is available?\n• Is computer001 an i7?\n• Where is microscope02?\n• Show me all SSD computers\n\nWhat would you like to know?`;
 }
 
-// Helper functions (implement these based on your database setup)
-async function getOrCreateConversation(userId, sessionId) {
-    // Implementation for database operations
-    const conversationId = `${userId}_${sessionId}`;
-    return {
-        id: conversationId,
-        session_id: sessionId,
-        user_id: userId
-    };
-}
+async function logChatInteraction(userId, message, parsedQuery, response) {
+    try {
+        const responseData = {
+            text: response,
+            timestamp: new Date().toISOString(),
+            queryType: parsedQuery.queryType
+        };
 
-async function saveMessage(conversationId, message, type) {
-    // Implementation for saving messages to database
-    console.log(`Saving ${type} message:`, message);
+        await sequelize.query(
+            'INSERT INTO chat_interactions (user_id, message, intent, entities, specific_item, response, confidence, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())',
+            {
+                replacements: [
+                    userId,
+                    message,
+                    parsedQuery.queryType,
+                    JSON.stringify(parsedQuery.entities),
+                    parsedQuery.specificItem || null,
+                    JSON.stringify(responseData),
+                    parsedQuery.confidence
+                ]
+            }
+        );
+    } catch (error) {
+        console.error('Failed to log chat interaction:', error);
+        // Don't throw error here - logging failure shouldn't break the chat
+    }
 }
 
 module.exports = router;

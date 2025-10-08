@@ -11,7 +11,8 @@ const Lab = sequelize.define('Lab', {
         type: DataTypes.STRING(255),
         allowNull: false,
         validate: {
-            notEmpty: true
+            notEmpty: true,
+            len: [2, 255]
         }
     },
     lab_type: {
@@ -25,7 +26,11 @@ const Lab = sequelize.define('Lab', {
     },
     capacity: {
         type: DataTypes.INTEGER,
-        allowNull: true
+        allowNull: true,
+        validate: {
+            min: 1,
+            max: 500
+        }
     },
     description: {
         type: DataTypes.TEXT,
@@ -33,6 +38,7 @@ const Lab = sequelize.define('Lab', {
     },
     is_active: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: true
     },
     created_by: {
@@ -41,21 +47,21 @@ const Lab = sequelize.define('Lab', {
         references: {
             model: 'users',
             key: 'id'
-        }
-    },
-    created_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
     }
 }, {
     tableName: 'labs',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        { fields: ['lab_type'] },
+        { fields: ['is_active'] },
+        { fields: ['created_by'] },
+        { fields: ['location'] }
+    ]
 });
 
 module.exports = Lab;

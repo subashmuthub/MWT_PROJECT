@@ -11,28 +11,59 @@ const Notification = sequelize.define('Notification', {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: 'Users',
+            model: 'users',
             key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
     },
     title: {
-        type: DataTypes.STRING,
-        allowNull: false
+        type: DataTypes.STRING(255),
+        allowNull: false,
+        validate: {
+            notEmpty: true,
+            len: [1, 255]
+        }
     },
     message: {
         type: DataTypes.TEXT,
-        allowNull: false
+        allowNull: false,
+        validate: {
+            notEmpty: true
+        }
     },
     type: {
-        type: DataTypes.STRING,
-        defaultValue: 'info' // info, warning, error, success
+        type: DataTypes.ENUM('info', 'success', 'warning', 'error', 'booking', 'maintenance', 'incident'),
+        allowNull: false,
+        defaultValue: 'info'
     },
-    isRead: {
+    read: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: false
+    },
+    created_by: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'users',
+            key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
     }
 }, {
-    timestamps: true
+    tableName: 'notifications',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    indexes: [
+        { fields: ['user_id'] },
+        { fields: ['read'] },
+        { fields: ['type'] },
+        { fields: ['created_by'] },
+        { fields: ['created_at'] }
+    ]
 });
 
 module.exports = Notification;

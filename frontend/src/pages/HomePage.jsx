@@ -1,7 +1,8 @@
 // src/pages/HomePage.jsx
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import Header from '../components/Header'
+import { useAuth } from '../hooks/useAuth';
 
 const HomePage = () => {
     const [currentSlide, setCurrentSlide] = useState(0);

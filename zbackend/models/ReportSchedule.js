@@ -9,7 +9,11 @@ const ReportSchedule = sequelize.define('ReportSchedule', {
     },
     name: {
         type: DataTypes.STRING(255),
-        allowNull: false
+        allowNull: false,
+        validate: {
+            notEmpty: true,
+            len: [2, 255]
+        }
     },
     description: {
         type: DataTypes.TEXT,
@@ -29,7 +33,8 @@ const ReportSchedule = sequelize.define('ReportSchedule', {
         validate: {
             min: 0,
             max: 6
-        }
+        },
+        comment: '0=Sunday, 6=Saturday'
     },
     day_of_month: {
         type: DataTypes.INTEGER,
@@ -41,23 +46,28 @@ const ReportSchedule = sequelize.define('ReportSchedule', {
     },
     time: {
         type: DataTypes.TIME,
+        allowNull: false,
         defaultValue: '09:00:00'
     },
     email_recipients: {
         type: DataTypes.JSON,
-        allowNull: true
+        allowNull: true,
+        comment: 'Array of email addresses'
     },
     auto_export: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: false
     },
     export_format: {
         type: DataTypes.ENUM('pdf', 'excel', 'csv'),
+        allowNull: false,
         defaultValue: 'pdf'
     },
     filters: {
         type: DataTypes.JSON,
-        allowNull: true
+        allowNull: true,
+        comment: 'Report-specific filters'
     },
     last_run: {
         type: DataTypes.DATE,
@@ -69,6 +79,7 @@ const ReportSchedule = sequelize.define('ReportSchedule', {
     },
     is_active: {
         type: DataTypes.BOOLEAN,
+        allowNull: false,
         defaultValue: true
     },
     created_by: {
@@ -77,13 +88,23 @@ const ReportSchedule = sequelize.define('ReportSchedule', {
         references: {
             model: 'users',
             key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'RESTRICT'
     }
 }, {
     tableName: 'report_schedules',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        { fields: ['report_type'] },
+        { fields: ['frequency'] },
+        { fields: ['is_active'] },
+        { fields: ['created_by'] },
+        { fields: ['next_run'] },
+        { fields: ['last_run'] }
+    ]
 });
 
 module.exports = ReportSchedule;

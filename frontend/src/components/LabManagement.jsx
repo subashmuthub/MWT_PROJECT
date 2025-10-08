@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:5000/api'
+const API_BASE_URL = '/api'
 
 // Add Lab Modal Component (kept within this file)
 function AddLabModal({ isOpen, onClose, onLabAdded }) {
@@ -780,7 +780,7 @@ export default function LabManagement() {
             setLoading(false)
         }
         loadData()
-    }, [])
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     if (loading) {
         return (

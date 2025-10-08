@@ -1,6 +1,6 @@
-// middleware/auth.js - Corrected version
+// middleware/auth.js - UPDATED VERSION
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User } = require('../models'); // ✅ FIXED: Import from models/index.js
 
 // JWT Secret - should match your auth routes
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
@@ -48,7 +48,9 @@ const authenticateToken = async (req, res, next) => {
         console.log('✅ Token verified for user:', decoded.email);
 
         // Get user from database to ensure they still exist and are active
-        const user = await User.findByPk(decoded.userId);
+        const user = await User.findByPk(decoded.userId, {
+            attributes: ['id', 'name', 'email', 'role', 'is_active'] // ✅ ADDED: Only select needed fields
+        });
 
         if (!user) {
             console.log('❌ User not found in database:', decoded.userId);
@@ -66,9 +68,9 @@ const authenticateToken = async (req, res, next) => {
             });
         }
 
-        // Add user info to request object - FIXED: use userId instead of id
+        // ✅ FIXED: Consistent user object structure
         req.user = {
-            userId: user.id, // This matches what your orders route expects
+            userId: user.id, // This matches what your routes expect
             id: user.id,
             email: user.email,
             role: user.role,
@@ -96,6 +98,14 @@ const authenticateToken = async (req, res, next) => {
             });
         }
 
+        // ✅ ADDED: Handle database connection errors
+        if (error.name === 'SequelizeConnectionError') {
+            return res.status(500).json({
+                success: false,
+                message: 'Database connection error.'
+            });
+        }
+
         return res.status(500).json({
             success: false,
             message: 'Internal server error during authentication.'
@@ -103,50 +113,51 @@ const authenticateToken = async (req, res, next) => {
     }
 };
 
-// Admin role middleware - FIXED: Proper middleware chaining
-const requireAdmin = (req, res, next) => {
-    // Check if user is authenticated and is admin
-    if (!req.user) {
-        console.log('❌ No authenticated user found');
-        return res.status(401).json({
-            success: false,
-            message: 'Access denied. Authentication required.'
-        });
-    }
+// ✅ IMPROVED: Generic role middleware
+const requireRole = (allowedRoles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            console.log('❌ No authenticated user found');
+            return res.status(401).json({
+                success: false,
+                message: 'Access denied. Authentication required.'
+            });
+        }
 
-    if (req.user.role !== 'admin') {
-        console.log('❌ Admin access denied. User role:', req.user.role);
-        return res.status(403).json({
-            success: false,
-            message: 'Access denied. Admin privileges required.'
-        });
-    }
+        const userRole = req.user.role;
+        const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
 
-    console.log('✅ Admin access granted for:', req.user.email);
-    next();
+        if (!roles.includes(userRole)) {
+            console.log('❌ Role access denied. User role:', userRole, 'Required:', roles);
+            return res.status(403).json({
+                success: false,
+                message: `Access denied. Required role: ${roles.join(' or ')}`
+            });
+        }
+
+        console.log('✅ Role access granted for:', req.user.email);
+        next();
+    };
 };
 
-// Teacher or Admin role middleware - FIXED: Proper middleware chaining
+// Admin role middleware
+const requireAdmin = (req, res, next) => {
+    return requireRole('admin')(req, res, next);
+};
+
+// Teacher or Admin role middleware
 const requireTeacherOrAdmin = (req, res, next) => {
-    // Check if user is authenticated and has proper role
-    if (!req.user) {
-        console.log('❌ No authenticated user found');
-        return res.status(401).json({
-            success: false,
-            message: 'Access denied. Authentication required.'
-        });
-    }
+    return requireRole(['teacher', 'admin'])(req, res, next);
+};
 
-    if (req.user.role !== 'teacher' && req.user.role !== 'admin') {
-        console.log('❌ Teacher/Admin access denied. User role:', req.user.role);
-        return res.status(403).json({
-            success: false,
-            message: 'Access denied. Teacher or Admin privileges required.'
-        });
-    }
+// ✅ ADDED: Lab Assistant or Admin role middleware
+const requireLabAssistantOrAdmin = (req, res, next) => {
+    return requireRole(['lab_assistant', 'admin'])(req, res, next);
+};
 
-    console.log('✅ Teacher/Admin access granted for:', req.user.email);
-    next();
+// ✅ ADDED: Lab Technician or Admin role middleware
+const requireLabTechnicianOrAdmin = (req, res, next) => {
+    return requireRole(['lab_technician', 'admin'])(req, res, next);
 };
 
 // Student, Teacher, or Admin role middleware (authenticated users)
@@ -158,7 +169,6 @@ const optionalAuth = async (req, res, next) => {
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            // No token provided, continue without authentication
             req.user = null;
             return next();
         }
@@ -172,7 +182,9 @@ const optionalAuth = async (req, res, next) => {
 
         // Try to verify token
         const decoded = jwt.verify(token, JWT_SECRET);
-        const user = await User.findByPk(decoded.userId);
+        const user = await User.findByPk(decoded.userId, {
+            attributes: ['id', 'name', 'email', 'role', 'is_active']
+        });
 
         if (user && user.is_active) {
             req.user = {
@@ -196,8 +208,11 @@ const optionalAuth = async (req, res, next) => {
 
 module.exports = {
     authenticateToken,
+    requireRole, // ✅ ADDED: Export the generic role middleware
     requireAdmin,
     requireTeacherOrAdmin,
+    requireLabAssistantOrAdmin, // ✅ ADDED
+    requireLabTechnicianOrAdmin, // ✅ ADDED
     requireAuthenticated,
     optionalAuth
 };

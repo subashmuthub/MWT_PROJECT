@@ -1,7 +1,7 @@
 // src/pages/Dashboard.jsx - Professional Dashboard with Sidebar and Real Backend Integration
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Dashboard() {
     const [stats, setStats] = useState({
@@ -23,6 +23,8 @@ export default function Dashboard() {
     const [recentLabs, setRecentLabs] = useState([])
     const [recentOrders, setRecentOrders] = useState([])
     const [equipmentStatus, setEquipmentStatus] = useState([])
+    const [notifications, setNotifications] = useState([])
+    const [unreadCount, setUnreadCount] = useState(0)
 
     const [systemStatus, setSystemStatus] = useState({
         server: 'checking',
@@ -187,6 +189,19 @@ export default function Dashboard() {
             show: user?.role === 'admin' || user?.role === 'lab_technician',
             badge: stats.pendingMaintenances > 0 ? stats.pendingMaintenances : null,
             badgeColor: 'bg-yellow-500'
+        },
+        {
+            id: 'notifications',
+            title: 'Notifications',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+            ),
+            path: '/notifications',
+            show: true,
+            badge: unreadCount > 0 ? unreadCount : null,
+            badgeColor: 'bg-red-500'
         }
     ]
 
@@ -245,13 +260,54 @@ export default function Dashboard() {
                 fetchRecentLabs(),
                 fetchRecentOrders(),
                 fetchEquipmentStatus(),
-                checkSystemStatus()
+                checkSystemStatus(),
+                fetchNotificationCount()
             ])
         } catch (error) {
             console.error('Error loading dashboard data:', error)
             setError('Failed to load dashboard data')
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchNotificationCount = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/notifications?unread_only=true`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (response.ok) {
+                const result = await response.json()
+                if (result.success) {
+                    setUnreadCount(result.data?.length || 0)
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching notification count:', error)
+        }
+    }
+
+    const fetchRecentNotifications = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/notifications?limit=3`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (response.ok) {
+                const result = await response.json()
+                if (result.success) {
+                    setNotifications(result.data || [])
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching recent notifications:', error)
         }
     }
 
@@ -542,6 +598,13 @@ export default function Dashboard() {
         }
     }
 
+    const handleNotificationDropdown = async () => {
+        if (!showNotifications) {
+            await fetchRecentNotifications()
+        }
+        setShowNotifications(!showNotifications)
+    }
+
     const getStatusColor = (status) => {
         switch (status) {
             case 'online':
@@ -572,6 +635,17 @@ export default function Dashboard() {
             default:
                 return '⚪'
         }
+    }
+
+    const formatTimeAgo = (timestamp) => {
+        const now = new Date()
+        const time = new Date(timestamp)
+        const diffInSeconds = Math.floor((now - time) / 1000)
+
+        if (diffInSeconds < 60) return 'Just now'
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
+        return time.toLocaleDateString()
     }
 
     if (loading) {
@@ -624,8 +698,8 @@ export default function Dashboard() {
                                     key={item.id}
                                     onClick={() => handleNavigation(item.path)}
                                     className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-                                            ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-700'
-                                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                        ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-700'
+                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                         }`}
                                     title={sidebarCollapsed ? item.title : ''}
                                 >
@@ -725,16 +799,16 @@ export default function Dashboard() {
                                 {/* Notifications */}
                                 <div className="relative" ref={notificationRef}>
                                     <button
-                                        onClick={() => setShowNotifications(!showNotifications)}
+                                        onClick={handleNotificationDropdown}
                                         className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors"
                                         title="Notifications"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                                         </svg>
-                                        {systemAlerts.length > 0 && (
+                                        {(unreadCount > 0 || systemAlerts.length > 0) && (
                                             <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
-                                                {systemAlerts.length}
+                                                {unreadCount + systemAlerts.length}
                                             </span>
                                         )}
                                     </button>
@@ -742,27 +816,63 @@ export default function Dashboard() {
                                     {/* Notifications Dropdown */}
                                     {showNotifications && (
                                         <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                                            <div className="px-4 py-2 border-b border-gray-100">
+                                            <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
                                                 <h3 className="font-semibold text-gray-800">Notifications</h3>
+                                                <button
+                                                    onClick={() => {
+                                                        setShowNotifications(false)
+                                                        handleNavigation('/notifications')
+                                                    }}
+                                                    className="text-sm text-blue-600 hover:text-blue-700"
+                                                >
+                                                    View All
+                                                </button>
                                             </div>
                                             <div className="max-h-64 overflow-y-auto">
-                                                {systemAlerts.length > 0 ? (
-                                                    systemAlerts.map(alert => (
-                                                        <div key={alert.id} className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50">
-                                                            <div className="flex items-start space-x-2">
-                                                                <div className={`w-2 h-2 rounded-full mt-2 ${alert.type === 'error' ? 'bg-red-500' :
-                                                                        alert.type === 'warning' ? 'bg-yellow-500' :
-                                                                            alert.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-                                                                    }`}></div>
-                                                                <div className="flex-1">
-                                                                    <p className="text-sm text-gray-800">{alert.message}</p>
-                                                                    <p className="text-xs text-gray-500 mt-1">
-                                                                        {new Date(alert.created_at).toLocaleString()}
-                                                                    </p>
+                                                {notifications.length > 0 || systemAlerts.length > 0 ? (
+                                                    <>
+                                                        {/* Recent Notifications */}
+                                                        {notifications.slice(0, 2).map(notification => (
+                                                            <div key={notification.id} className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50">
+                                                                <div className="flex items-start space-x-2">
+                                                                    <div className={`w-2 h-2 rounded-full mt-2 ${!notification.read ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                                                    <div className="flex-1">
+                                                                        <p className="text-sm font-medium text-gray-800">{notification.title}</p>
+                                                                        <p className="text-xs text-gray-600 truncate">{notification.message}</p>
+                                                                        <p className="text-xs text-gray-500 mt-1">
+                                                                            {formatTimeAgo(notification.created_at)}
+                                                                        </p>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    ))
+                                                        ))}
+
+                                                        {/* System Alerts */}
+                                                        {systemAlerts.slice(0, 2).map(alert => (
+                                                            <div key={alert.id} className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50">
+                                                                <div className="flex items-start space-x-2">
+                                                                    <div className={`w-2 h-2 rounded-full mt-2 ${alert.type === 'error' ? 'bg-red-500' :
+                                                                        alert.type === 'warning' ? 'bg-yellow-500' :
+                                                                            alert.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+                                                                        }`}></div>
+                                                                    <div className="flex-1">
+                                                                        <p className="text-sm text-gray-800">{alert.message}</p>
+                                                                        <p className="text-xs text-gray-500 mt-1">
+                                                                            {new Date(alert.created_at).toLocaleString()}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+
+                                                        {(unreadCount + systemAlerts.length) > 4 && (
+                                                            <div className="px-4 py-3 text-center border-t border-gray-100">
+                                                                <p className="text-sm text-blue-600">
+                                                                    + {(unreadCount + systemAlerts.length) - 4} more notification{((unreadCount + systemAlerts.length) - 4) !== 1 ? 's' : ''}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 ) : (
                                                     <div className="px-4 py-8 text-center text-gray-500">
                                                         <svg className="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -973,9 +1083,9 @@ export default function Dashboard() {
                                             <div key={activity.id} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
                                                 <div className="flex-shrink-0">
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activity.type === 'booking' ? 'bg-blue-100 text-blue-600' :
-                                                            activity.type === 'incident' ? 'bg-red-100 text-red-600' :
-                                                                activity.type === 'maintenance' ? 'bg-yellow-100 text-yellow-600' :
-                                                                    'bg-green-100 text-green-600'
+                                                        activity.type === 'incident' ? 'bg-red-100 text-red-600' :
+                                                            activity.type === 'maintenance' ? 'bg-yellow-100 text-yellow-600' :
+                                                                'bg-green-100 text-green-600'
                                                         }`}>
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             {activity.type === 'booking' && (
@@ -1029,9 +1139,9 @@ export default function Dashboard() {
                                                 <div className="flex items-center justify-between mb-2">
                                                     <h3 className="font-medium text-gray-900">{equipment.name}</h3>
                                                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${equipment.status === 'available' ? 'bg-green-100 text-green-800' :
-                                                            equipment.status === 'in_use' ? 'bg-blue-100 text-blue-800' :
-                                                                equipment.status === 'maintenance' ? 'bg-yellow-100 text-yellow-800' :
-                                                                    'bg-red-100 text-red-800'
+                                                        equipment.status === 'in_use' ? 'bg-blue-100 text-blue-800' :
+                                                            equipment.status === 'maintenance' ? 'bg-yellow-100 text-yellow-800' :
+                                                                'bg-red-100 text-red-800'
                                                         }`}>
                                                         {equipment.status?.replace('_', ' ')}
                                                     </span>
@@ -1150,8 +1260,8 @@ export default function Dashboard() {
                                                         {new Date(booking.start_time).toLocaleString()}
                                                     </span>
                                                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
-                                                            booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                                'bg-gray-100 text-gray-800'
+                                                        booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                            'bg-gray-100 text-gray-800'
                                                         }`}>
                                                         {booking.status}
                                                     </span>
@@ -1187,9 +1297,9 @@ export default function Dashboard() {
                                                 <div className="flex items-center justify-between mb-2">
                                                     <h3 className="font-medium text-gray-900">Order #{order.id}</h3>
                                                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                            order.status === 'Approved' ? 'bg-blue-100 text-blue-800' :
-                                                                order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                                                                    'bg-gray-100 text-gray-800'
+                                                        order.status === 'Approved' ? 'bg-blue-100 text-blue-800' :
+                                                            order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
+                                                                'bg-gray-100 text-gray-800'
                                                         }`}>
                                                         {order.status}
                                                     </span>

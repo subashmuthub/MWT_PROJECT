@@ -1,7 +1,9 @@
-// src/App.jsx - CORRECTED VERSION
+// src/App.jsx - UPDATED VERSION
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
+import { useAuth } from './hooks/useAuth'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
+import ErrorBoundary from './components/ErrorBoundary'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -29,8 +31,14 @@ const AuthRedirect = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
+          </div>
+          <p className="text-gray-600 mt-4 font-medium">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -113,11 +121,11 @@ function AppContent() {
           }
         />
 
-        {/* FIXED: Removed duplicate /orders route */}
+        {/* Admin and Lab Assistant Routes */}
         <Route
           path="/orders"
           element={
-            <ProtectedRoute requiredRole="admin">
+            <ProtectedRoute requiredRole={['admin', 'lab_assistant']}>
               <OrderManagement />
             </ProtectedRoute>
           }
@@ -126,19 +134,21 @@ function AppContent() {
         <Route
           path="/reports"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole={['admin', 'teacher', 'lab_assistant']}>
               <ReportsAnalytics />
             </ProtectedRoute>
           }
         />
+        
         <Route
           path="/maintenance"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole={['admin', 'lab_assistant', 'teacher']}>
               <MaintenanceSchedule />
             </ProtectedRoute>
           }
         />
+        
         <Route
           path="/notifications"
           element={
@@ -158,16 +168,7 @@ function AppContent() {
           }
         />
 
-        {/* Lab Management Admin Route */}
-        <Route
-          path="/lab-management-admin"
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <LabManagement />
-            </ProtectedRoute>
-          }
-        />
-
+        {/* General Access Routes */}
         <Route
           path="/incidents"
           element={
@@ -216,7 +217,7 @@ function AppContent() {
         />
       </Routes>
 
-      {/* CHATBOT - Correctly placed OUTSIDE Routes but INSIDE the main div */}
+      {/* CHATBOT - Available on all authenticated pages */}
       <Chatbot />
     </div>
   );
@@ -224,11 +225,13 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

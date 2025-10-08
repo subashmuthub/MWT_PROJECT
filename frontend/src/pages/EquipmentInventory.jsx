@@ -1,48 +1,517 @@
-// src/pages/EquipmentInventory.jsx - With Sidebar and Header
+// src/pages/EquipmentInventory.jsx - Enhanced Professional UI
 import { useState, useEffect, useRef } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { useNavigate, useLocation } from 'react-router-dom'
 
-// Add Equipment Modal Component
+// Enhanced Add Equipment Modal Component with Dynamic Fields
 function AddEquipmentModal({ isOpen, onClose, onEquipmentAdded, labs }) {
     const { token } = useAuth()
+    const API_BASE_URL = '/api' // Use relative URL for proxy
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         serial_number: '',
         model: '',
         manufacturer: '',
-        category: 'other',
+        category: 'computer',
         lab_id: '',
         location_details: '',
         status: 'available',
-        condition_status: 'good',
+        condition_status: 'excellent',
         purchase_price: '',
         current_value: '',
         purchase_date: new Date().toISOString().split('T')[0],
-        warranty_expiry: ''
+        warranty_expiry: '',
+        // Computer specific
+        processor: '',
+        ram: '',
+        storage: '',
+        graphics_card: '',
+        operating_system: '',
+        // Projector specific
+        resolution: '',
+        brightness: '',
+        contrast_ratio: '',
+        lamp_hours: '',
+        // Printer specific
+        print_type: '',
+        print_speed: '',
+        paper_size: '',
+        connectivity: '',
+        // Microscope specific
+        magnification: '',
+        objective_lenses: '',
+        illumination: '',
+        // Lab Equipment specific
+        capacity: '',
+        power_rating: '',
+        temperature_range: '',
+        accuracy: '',
+        // Network Equipment specific
+        ports: '',
+        speed: '',
+        protocol: ''
     })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
+    // Enhanced categories - only 6 main categories
     const categories = [
-        { value: 'computer', label: '💻 Computer' },
-        { value: 'printer', label: '🖨️ Printer' },
-        { value: 'projector', label: '📽️ Projector' },
-        { value: 'scanner', label: '📄 Scanner' },
-        { value: 'microscope', label: '🔬 Microscope' },
-        { value: 'centrifuge', label: '🌀 Centrifuge' },
-        { value: 'spectrophotometer', label: '📊 Spectrophotometer' },
-        { value: 'ph_meter', label: '🧪 pH Meter' },
-        { value: 'balance', label: '⚖️ Balance' },
-        { value: 'incubator', label: '🌡️ Incubator' },
-        { value: 'autoclave', label: '🔥 Autoclave' },
-        { value: 'pipette', label: '💧 Pipette' },
-        { value: 'thermometer', label: '🌡️ Thermometer' },
-        { value: 'glassware', label: '🧪 Glassware' },
-        { value: 'safety_equipment', label: '🛡️ Safety Equipment' },
-        { value: 'other', label: '📦 Other' }
+        {
+            value: 'computer',
+            label: '💻 Computer & IT Equipment',
+            icon: '💻',
+            color: 'bg-blue-100 text-blue-800'
+        },
+        {
+            value: 'projector',
+            label: '📽️ Projectors & Displays',
+            icon: '📽️',
+            color: 'bg-purple-100 text-purple-800'
+        },
+        {
+            value: 'printer',
+            label: '🖨️ Printers & Scanners',
+            icon: '🖨️',
+            color: 'bg-green-100 text-green-800'
+        },
+        {
+            value: 'microscope',
+            label: '🔬 Microscopes & Optics',
+            icon: '🔬',
+            color: 'bg-indigo-100 text-indigo-800'
+        },
+        {
+            value: 'lab_equipment',
+            label: '⚗️ Laboratory Equipment',
+            icon: '⚗️',
+            color: 'bg-emerald-100 text-emerald-800'
+        },
+        {
+            value: 'network',
+            label: '🌐 Network Equipment',
+            icon: '🌐',
+            color: 'bg-orange-100 text-orange-800'
+        }
     ]
+
+    // Dynamic fields based on category
+    const getSpecificFields = () => {
+        switch (formData.category) {
+            case 'computer':
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <div className="col-span-2">
+                            <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
+                                💻 Computer Specifications
+                            </h4>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Processor/CPU
+                            </label>
+                            <input
+                                type="text"
+                                name="processor"
+                                value={formData.processor}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="e.g., Intel Core i7-12700K"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                RAM Memory
+                            </label>
+                            <input
+                                type="text"
+                                name="ram"
+                                value={formData.ram}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="e.g., 16GB DDR4"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Storage
+                            </label>
+                            <input
+                                type="text"
+                                name="storage"
+                                value={formData.storage}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="e.g., 512GB SSD + 1TB HDD"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Graphics Card
+                            </label>
+                            <input
+                                type="text"
+                                name="graphics_card"
+                                value={formData.graphics_card}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="e.g., NVIDIA RTX 4060"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Operating System
+                            </label>
+                            <select
+                                name="operating_system"
+                                value={formData.operating_system}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={loading}
+                            >
+                                <option value="">Select OS</option>
+                                <option value="Windows 11 Pro">Windows 11 Pro</option>
+                                <option value="Windows 11 Home">Windows 11 Home</option>
+                                <option value="Windows 10 Pro">Windows 10 Pro</option>
+                                <option value="macOS Ventura">macOS Ventura</option>
+                                <option value="Ubuntu Linux">Ubuntu Linux</option>
+                                <option value="Other Linux">Other Linux</option>
+                            </select>
+                        </div>
+                    </div>
+                )
+
+            case 'projector':
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                        <div className="col-span-2">
+                            <h4 className="font-semibold text-purple-800 mb-3 flex items-center">
+                                📽️ Projector Specifications
+                            </h4>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Resolution
+                            </label>
+                            <select
+                                name="resolution"
+                                value={formData.resolution}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                disabled={loading}
+                            >
+                                <option value="">Select Resolution</option>
+                                <option value="4K UHD (3840x2160)">4K UHD (3840x2160)</option>
+                                <option value="Full HD (1920x1080)">Full HD (1920x1080)</option>
+                                <option value="HD (1280x720)">HD (1280x720)</option>
+                                <option value="XGA (1024x768)">XGA (1024x768)</option>
+                                <option value="SVGA (800x600)">SVGA (800x600)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Brightness (Lumens)
+                            </label>
+                            <input
+                                type="text"
+                                name="brightness"
+                                value={formData.brightness}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                placeholder="e.g., 3500 Lumens"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Contrast Ratio
+                            </label>
+                            <input
+                                type="text"
+                                name="contrast_ratio"
+                                value={formData.contrast_ratio}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                placeholder="e.g., 15000:1"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Lamp Hours Used
+                            </label>
+                            <input
+                                type="number"
+                                name="lamp_hours"
+                                value={formData.lamp_hours}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                placeholder="0"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                )
+
+            case 'printer':
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-green-50 p-4 rounded-lg border border-green-200">
+                        <div className="col-span-2">
+                            <h4 className="font-semibold text-green-800 mb-3 flex items-center">
+                                🖨️ Printer Specifications
+                            </h4>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Print Type
+                            </label>
+                            <select
+                                name="print_type"
+                                value={formData.print_type}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                disabled={loading}
+                            >
+                                <option value="">Select Type</option>
+                                <option value="Laser Printer">Laser Printer</option>
+                                <option value="Inkjet Printer">Inkjet Printer</option>
+                                <option value="3D Printer">3D Printer</option>
+                                <option value="Label Printer">Label Printer</option>
+                                <option value="Scanner">Scanner</option>
+                                <option value="Multifunction">Multifunction (Print/Scan/Copy)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Print Speed
+                            </label>
+                            <input
+                                type="text"
+                                name="print_speed"
+                                value={formData.print_speed}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                placeholder="e.g., 30 ppm (pages per minute)"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Paper Size Support
+                            </label>
+                            <input
+                                type="text"
+                                name="paper_size"
+                                value={formData.paper_size}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                placeholder="e.g., A4, A3, Letter, Legal"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Connectivity
+                            </label>
+                            <input
+                                type="text"
+                                name="connectivity"
+                                value={formData.connectivity}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                placeholder="e.g., WiFi, Ethernet, USB, Bluetooth"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                )
+
+            case 'microscope':
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                        <div className="col-span-2">
+                            <h4 className="font-semibold text-indigo-800 mb-3 flex items-center">
+                                🔬 Microscope Specifications
+                            </h4>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Maximum Magnification
+                            </label>
+                            <input
+                                type="text"
+                                name="magnification"
+                                value={formData.magnification}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                placeholder="e.g., 1000x, 2000x"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Objective Lenses
+                            </label>
+                            <input
+                                type="text"
+                                name="objective_lenses"
+                                value={formData.objective_lenses}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                placeholder="e.g., 4x, 10x, 40x, 100x"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Illumination Type
+                            </label>
+                            <select
+                                name="illumination"
+                                value={formData.illumination}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                disabled={loading}
+                            >
+                                <option value="">Select Illumination</option>
+                                <option value="LED">LED</option>
+                                <option value="Halogen">Halogen</option>
+                                <option value="Fluorescence">Fluorescence</option>
+                                <option value="Phase Contrast">Phase Contrast</option>
+                                <option value="Darkfield">Darkfield</option>
+                            </select>
+                        </div>
+                    </div>
+                )
+
+            case 'lab_equipment':
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                        <div className="col-span-2">
+                            <h4 className="font-semibold text-emerald-800 mb-3 flex items-center">
+                                ⚗️ Laboratory Equipment Specifications
+                            </h4>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Capacity/Volume
+                            </label>
+                            <input
+                                type="text"
+                                name="capacity"
+                                value={formData.capacity}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="e.g., 500ml, 2L, 50 samples"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Power Rating
+                            </label>
+                            <input
+                                type="text"
+                                name="power_rating"
+                                value={formData.power_rating}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="e.g., 220V, 1500W"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Temperature Range
+                            </label>
+                            <input
+                                type="text"
+                                name="temperature_range"
+                                value={formData.temperature_range}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="e.g., -20°C to +150°C"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Accuracy/Precision
+                            </label>
+                            <input
+                                type="text"
+                                name="accuracy"
+                                value={formData.accuracy}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                placeholder="e.g., ±0.1mg, ±0.01pH"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                )
+
+            case 'network':
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-orange-50 p-4 rounded-lg border border-orange-200">
+                        <div className="col-span-2">
+                            <h4 className="font-semibold text-orange-800 mb-3 flex items-center">
+                                🌐 Network Equipment Specifications
+                            </h4>
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Number of Ports
+                            </label>
+                            <input
+                                type="text"
+                                name="ports"
+                                value={formData.ports}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="e.g., 24 Ethernet, 4 SFP+"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Speed/Bandwidth
+                            </label>
+                            <input
+                                type="text"
+                                name="speed"
+                                value={formData.speed}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="e.g., 1Gbps, 10Gbps, WiFi 6"
+                                disabled={loading}
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-gray-700 text-sm font-medium mb-2">
+                                Supported Protocols
+                            </label>
+                            <input
+                                type="text"
+                                name="protocol"
+                                value={formData.protocol}
+                                onChange={handleChange}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="e.g., 802.11ax, VLAN, SNMP, PoE+"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                )
+
+            default:
+                return null
+        }
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -50,7 +519,7 @@ function AddEquipmentModal({ isOpen, onClose, onEquipmentAdded, labs }) {
         setError('')
 
         try {
-            const response = await fetch('http://localhost:5000/api/equipment', {
+            const response = await fetch(`${API_BASE_URL}/equipment`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -64,21 +533,45 @@ function AddEquipmentModal({ isOpen, onClose, onEquipmentAdded, labs }) {
             if (result.success) {
                 onEquipmentAdded(result.data.equipment)
                 onClose()
+                // Reset form
                 setFormData({
                     name: '',
                     description: '',
                     serial_number: '',
                     model: '',
                     manufacturer: '',
-                    category: 'other',
+                    category: 'computer',
                     lab_id: '',
                     location_details: '',
                     status: 'available',
-                    condition_status: 'good',
+                    condition_status: 'excellent',
                     purchase_price: '',
                     current_value: '',
                     purchase_date: new Date().toISOString().split('T')[0],
-                    warranty_expiry: ''
+                    warranty_expiry: '',
+                    processor: '',
+                    ram: '',
+                    storage: '',
+                    graphics_card: '',
+                    operating_system: '',
+                    resolution: '',
+                    brightness: '',
+                    contrast_ratio: '',
+                    lamp_hours: '',
+                    print_type: '',
+                    print_speed: '',
+                    paper_size: '',
+                    connectivity: '',
+                    magnification: '',
+                    objective_lenses: '',
+                    illumination: '',
+                    capacity: '',
+                    power_rating: '',
+                    temperature_range: '',
+                    accuracy: '',
+                    ports: '',
+                    speed: '',
+                    protocol: ''
                 })
             } else {
                 setError(result.message || 'Failed to create equipment')
@@ -103,221 +596,343 @@ function AddEquipmentModal({ isOpen, onClose, onEquipmentAdded, labs }) {
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">➕ Add New Equipment</h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600"
-                        disabled={loading}
-                    >
-                        ✕
-                    </button>
-                </div>
-
-                {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                        ⚠️ {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Equipment Name *
-                            </label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                placeholder="Enter equipment name"
-                                required
-                                disabled={loading}
-                            />
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden">
+                {/* Modal Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                                <span className="text-2xl">➕</span>
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-white">Add New Equipment</h2>
+                                <p className="text-blue-100 text-sm">Enter equipment details and specifications</p>
+                            </div>
                         </div>
-
-                        <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Serial Number *
-                            </label>
-                            <input
-                                type="text"
-                                name="serial_number"
-                                value={formData.serial_number}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                placeholder="Serial number"
-                                required
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Category *
-                            </label>
-                            <select
-                                name="category"
-                                value={formData.category}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                required
-                                disabled={loading}
-                            >
-                                {categories.map(cat => (
-                                    <option key={cat.value} value={cat.value}>
-                                        {cat.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Lab *
-                            </label>
-                            <select
-                                name="lab_id"
-                                value={formData.lab_id}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                required
-                                disabled={loading}
-                            >
-                                <option value="">🏛️ Select Lab</option>
-                                {labs.map(lab => (
-                                    <option key={lab.id} value={lab.id}>
-                                        {lab.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Model
-                            </label>
-                            <input
-                                type="text"
-                                name="model"
-                                value={formData.model}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                placeholder="Equipment model"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Manufacturer
-                            </label>
-                            <input
-                                type="text"
-                                name="manufacturer"
-                                value={formData.manufacturer}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                placeholder="Manufacturer name"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Purchase Price
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="purchase_price"
-                                value={formData.purchase_price}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                placeholder="0.00"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Purchase Date
-                            </label>
-                            <input
-                                type="date"
-                                name="purchase_date"
-                                value={formData.purchase_date}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div className="col-span-2">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Location Details
-                            </label>
-                            <input
-                                type="text"
-                                name="location_details"
-                                value={formData.location_details}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                placeholder="e.g., Shelf A, Cabinet 1"
-                                disabled={loading}
-                            />
-                        </div>
-
-                        <div className="col-span-2">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Description
-                            </label>
-                            <textarea
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 border rounded focus:outline-none focus:border-blue-500"
-                                rows="3"
-                                placeholder="Equipment description"
-                                disabled={loading}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex justify-end space-x-3 mt-6">
                         <button
-                            type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                            className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-white hover:bg-opacity-10 rounded-lg"
                             disabled={loading}
                         >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading || !formData.name.trim() || !formData.serial_number.trim() || !formData.lab_id}
-                            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? 'Creating...' : '➕ Create Equipment'}
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
                         </button>
                     </div>
-                </form>
+                </div>
+
+                {/* Modal Content */}
+                <div className="p-6 overflow-y-auto max-h-[calc(95vh-120px)]">
+                    {error && (
+                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-lg mb-6">
+                            <div className="flex items-center">
+                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path>
+                                </svg>
+                                <span className="font-medium">⚠️ {error}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Basic Information Section */}
+                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <span className="mr-2">📋</span>
+                                Basic Information
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Equipment Category *
+                                    </label>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                        {categories.map(cat => (
+                                            <label key={cat.value} className="relative">
+                                                <input
+                                                    type="radio"
+                                                    name="category"
+                                                    value={cat.value}
+                                                    checked={formData.category === cat.value}
+                                                    onChange={handleChange}
+                                                    className="sr-only"
+                                                    disabled={loading}
+                                                />
+                                                <div className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${formData.category === cat.value
+                                                        ? `${cat.color} border-current`
+                                                        : 'bg-white border-gray-200 hover:border-gray-300'
+                                                    }`}>
+                                                    <div className="text-center">
+                                                        <div className="text-2xl mb-1">{cat.icon}</div>
+                                                        <div className="text-xs font-medium">
+                                                            {cat.label.split(' ').slice(1).join(' ')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Equipment Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={formData.name}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        placeholder="Enter equipment name"
+                                        required
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Serial Number *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="serial_number"
+                                        value={formData.serial_number}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        placeholder="Serial number"
+                                        required
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Assigned Lab *
+                                    </label>
+                                    <select
+                                        name="lab_id"
+                                        value={formData.lab_id}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        required
+                                        disabled={loading}
+                                    >
+                                        <option value="">🏛️ Select Lab</option>
+                                        {labs.map(lab => (
+                                            <option key={lab.id} value={lab.id}>
+                                                {lab.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Manufacturer/Brand
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="manufacturer"
+                                        value={formData.manufacturer}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        placeholder="Manufacturer name"
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Model Number
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="model"
+                                        value={formData.model}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        placeholder="Equipment model"
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Condition Status
+                                    </label>
+                                    <select
+                                        name="condition_status"
+                                        value={formData.condition_status}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        disabled={loading}
+                                    >
+                                        <option value="excellent">✨ Excellent</option>
+                                        <option value="good">✅ Good</option>
+                                        <option value="fair">⚠️ Fair</option>
+                                        <option value="poor">❌ Poor</option>
+                                    </select>
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Location Details
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="location_details"
+                                        value={formData.location_details}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        placeholder="e.g., Room 101, Shelf A, Cabinet 2"
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        name="description"
+                                        value={formData.description}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                                        rows="3"
+                                        placeholder="Detailed equipment description"
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Category-Specific Specifications */}
+                        {getSpecificFields()}
+
+                        {/* Purchase Information Section */}
+                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <span className="mr-2">💰</span>
+                                Purchase Information
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Purchase Price
+                                    </label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-3 text-gray-500">$</span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            name="purchase_price"
+                                            value={formData.purchase_price}
+                                            onChange={handleChange}
+                                            className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                            placeholder="0.00"
+                                            disabled={loading}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Current Value
+                                    </label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-3 text-gray-500">$</span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            name="current_value"
+                                            value={formData.current_value}
+                                            onChange={handleChange}
+                                            className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                            placeholder="0.00"
+                                            disabled={loading}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Purchase Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="purchase_date"
+                                        value={formData.purchase_date}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        disabled={loading}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-2">
+                                        Warranty Expiry
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="warranty_expiry"
+                                        value={formData.warranty_expiry}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Form Actions */}
+                        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-6 py-3 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                                disabled={loading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading || !formData.name.trim() || !formData.serial_number.trim() || !formData.lab_id}
+                                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center space-x-2"
+                            >
+                                {loading ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span>Creating...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>➕</span>
+                                        <span>Create Equipment</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     )
 }
 
-// Main Equipment Inventory Component with Sidebar
+// Main Equipment Inventory Component - Enhanced UI
 export default function EquipmentInventory() {
     const { token, user, logout } = useAuth()
     const navigate = useNavigate()
     const location = useLocation()
 
-    // Equipment state
+    // All existing state and functions remain the same...
     const [equipment, setEquipment] = useState([])
     const [labs, setLabs] = useState([])
     const [stats, setStats] = useState({
@@ -336,21 +951,27 @@ export default function EquipmentInventory() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
-
-    // Sidebar and UI state
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
     const [showNotifications, setShowNotifications] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
 
-    // Refs
     const userMenuRef = useRef(null)
     const notificationRef = useRef(null)
 
-    // Fixed API base URL
-    const API_BASE_URL = 'http://localhost:5000/api'
+    const API_BASE_URL = '/api'
 
-    // Sidebar Navigation Items
+    // Enhanced categories for filtering
+    const categoryOptions = [
+        { value: 'computer', label: '💻 Computer & IT', color: 'bg-blue-100 text-blue-800' },
+        { value: 'projector', label: '📽️ Projectors', color: 'bg-purple-100 text-purple-800' },
+        { value: 'printer', label: '🖨️ Printers', color: 'bg-green-100 text-green-800' },
+        { value: 'microscope', label: '🔬 Microscopes', color: 'bg-indigo-100 text-indigo-800' },
+        { value: 'lab_equipment', label: '⚗️ Lab Equipment', color: 'bg-emerald-100 text-emerald-800' },
+        { value: 'network', label: '🌐 Network', color: 'bg-orange-100 text-orange-800' }
+    ]
+
+    // Enhanced navigation items
     const navigationItems = [
         {
             id: 'dashboard',
@@ -477,7 +1098,7 @@ export default function EquipmentInventory() {
         }
     ]
 
-    // Click outside handler for dropdowns
+    // All existing useEffect and function implementations remain the same...
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -512,7 +1133,6 @@ export default function EquipmentInventory() {
                     'Content-Type': 'application/json'
                 }
 
-                // Build query parameters for equipment filtering
                 const queryParams = new URLSearchParams()
                 Object.keys(filters).forEach(key => {
                     if (filters[key]) {
@@ -520,20 +1140,17 @@ export default function EquipmentInventory() {
                     }
                 })
 
-                // Fetch labs first
                 const labsResponse = await fetch(`${API_BASE_URL}/labs`, { headers })
                 if (labsResponse.ok) {
                     const labsData = await labsResponse.json()
                     setLabs(labsData.data?.labs || [])
                 }
 
-                // Fetch equipment with filters
                 const equipmentResponse = await fetch(`${API_BASE_URL}/equipment?${queryParams}`, { headers })
                 if (equipmentResponse.ok) {
                     const equipmentData = await equipmentResponse.json()
                     setEquipment(equipmentData.data?.equipment || [])
 
-                    // Calculate stats from equipment data
                     const equipmentList = equipmentData.data?.equipment || []
                     const calculatedStats = {
                         total: equipmentList.length,
@@ -560,7 +1177,7 @@ export default function EquipmentInventory() {
         fetchData()
     }, [filters, token, navigate])
 
-    // Navigation functions
+    // All existing handler functions remain the same...
     const handleNavigation = (path) => {
         navigate(path)
     }
@@ -603,12 +1220,10 @@ export default function EquipmentInventory() {
             })
 
             if (response.ok) {
-                // Update equipment list locally
                 setEquipment(prev => prev.map(item =>
                     item.id === equipmentId ? { ...item, status: newStatus } : item
                 ))
 
-                // Recalculate stats
                 const updatedEquipment = equipment.map(item =>
                     item.id === equipmentId ? { ...item, status: newStatus } : item
                 )
@@ -645,7 +1260,6 @@ export default function EquipmentInventory() {
 
                 if (response.ok) {
                     setEquipment(prev => prev.filter(item => item.id !== equipmentId))
-                    // Recalculate stats after deletion
                     const updatedEquipment = equipment.filter(item => item.id !== equipmentId)
                     const newStats = {
                         total: updatedEquipment.length,
@@ -668,7 +1282,6 @@ export default function EquipmentInventory() {
 
     const handleEquipmentAdded = (newEquipment) => {
         setEquipment(prev => [newEquipment, ...prev])
-        // Recalculate stats
         const updatedEquipment = [newEquipment, ...equipment]
         const newStats = {
             total: updatedEquipment.length,
@@ -682,71 +1295,56 @@ export default function EquipmentInventory() {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'available': return 'bg-green-100 text-green-800'
-            case 'in_use': return 'bg-orange-100 text-orange-800'
-            case 'maintenance': return 'bg-red-100 text-red-800'
-            case 'broken': return 'bg-gray-100 text-gray-800'
-            case 'retired': return 'bg-purple-100 text-purple-800'
-            default: return 'bg-gray-100 text-gray-800'
+            case 'available': return 'bg-green-100 text-green-800 border border-green-200'
+            case 'in_use': return 'bg-orange-100 text-orange-800 border border-orange-200'
+            case 'maintenance': return 'bg-red-100 text-red-800 border border-red-200'
+            case 'broken': return 'bg-gray-100 text-gray-800 border border-gray-200'
+            case 'retired': return 'bg-purple-100 text-purple-800 border border-purple-200'
+            default: return 'bg-gray-100 text-gray-800 border border-gray-200'
         }
     }
 
-    const getCategoryIcon = (category) => {
-        switch (category) {
-            case 'computer': return '💻'
-            case 'printer': return '🖨️'
-            case 'projector': return '📽️'
-            case 'scanner': return '📄'
-            case 'microscope': return '🔬'
-            case 'centrifuge': return '🌀'
-            case 'spectrophotometer': return '📊'
-            case 'ph_meter': return '🧪'
-            case 'balance': return '⚖️'
-            case 'incubator': return '🌡️'
-            case 'autoclave': return '🔥'
-            case 'pipette': return '💧'
-            case 'thermometer': return '🌡️'
-            case 'glassware': return '🧪'
-            case 'safety_equipment': return '🛡️'
-            default: return '📦'
-        }
+    const getCategoryInfo = (category) => {
+        const categoryInfo = categoryOptions.find(cat => cat.value === category)
+        return categoryInfo || { label: '📦 Other', color: 'bg-gray-100 text-gray-800' }
     }
 
     if (loading) {
         return (
-            <div className="min-h-screen w-full bg-gray-50 flex items-center justify-center">
+            <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="relative">
-                        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
-                        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
+                        <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-200"></div>
+                        <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
                     </div>
-                    <p className="text-gray-600 mt-4 font-medium">Loading equipment inventory...</p>
+                    <p className="text-gray-600 mt-6 font-medium text-lg">Loading equipment inventory...</p>
+                    <div className="mt-2 text-sm text-gray-500">Please wait while we fetch your data</div>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen w-full bg-gray-50 flex">
-            {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 ${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg border-r border-gray-200 transition-all duration-300`}>
+        <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-purple-50 flex">
+            {/* Enhanced Sidebar - Same as before */}
+            <div className={`fixed inset-y-0 left-0 z-50 ${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-xl border-r border-gray-200 transition-all duration-300`}>
                 {/* Sidebar Header */}
-                <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+                <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
                     {!sidebarCollapsed && (
                         <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                            <div className="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold text-sm">L</span>
                             </div>
-                            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            <h1 className="text-xl font-bold text-white">
                                 LabMS
                             </h1>
                         </div>
                     )}
                     <button
                         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="p-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-colors text-white"
                     >
-                        <svg className={`w-5 h-5 text-gray-600 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`w-5 h-5 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
                         </svg>
                     </button>
@@ -761,9 +1359,9 @@ export default function EquipmentInventory() {
                                 <button
                                     key={item.id}
                                     onClick={() => handleNavigation(item.path)}
-                                    className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-                                            ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-700'
-                                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                    className={`w-full flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive
+                                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                                         }`}
                                     title={sidebarCollapsed ? item.title : ''}
                                 >
@@ -783,7 +1381,7 @@ export default function EquipmentInventory() {
                 {!sidebarCollapsed && (
                     <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
                         <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                                 <span className="text-white font-medium text-sm">
                                     {(user?.name || user?.email)?.charAt(0)?.toUpperCase()}
                                 </span>
@@ -793,7 +1391,7 @@ export default function EquipmentInventory() {
                                     {user?.name || user?.email}
                                 </p>
                                 <p className="text-xs text-gray-500 capitalize">
-                                    {user?.role}
+                                    {user?.role?.replace('_', ' ')}
                                 </p>
                             </div>
                         </div>
@@ -803,21 +1401,21 @@ export default function EquipmentInventory() {
 
             {/* Main Content */}
             <div className={`flex-1 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
-                {/* Top Header */}
+                {/* Enhanced Top Header */}
                 <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
                     <div className="px-6 py-4">
                         <div className="flex items-center justify-between">
-                            {/* Search Bar */}
+                            {/* Enhanced Search Bar */}
                             <form onSubmit={handleSearch} className="flex-1 max-w-lg">
                                 <div className="relative">
                                     <input
                                         type="text"
-                                        placeholder="Search anything..."
+                                        placeholder="Search equipment, labs, or categories..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 bg-gray-100 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm"
                                     />
-                                    <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-5 h-5 text-gray-400 absolute left-4 top-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
                                 </div>
@@ -829,10 +1427,10 @@ export default function EquipmentInventory() {
                                 <div className="relative" ref={notificationRef}>
                                     <button
                                         onClick={() => setShowNotifications(!showNotifications)}
-                                        className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors bg-gray-50 rounded-lg hover:bg-gray-100"
                                         title="Notifications"
                                     >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                                         </svg>
                                     </button>
@@ -842,12 +1440,16 @@ export default function EquipmentInventory() {
                                 <div className="relative" ref={userMenuRef}>
                                     <button
                                         onClick={() => setShowUserMenu(!showUserMenu)}
-                                        className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                        className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-50 transition-colors"
                                     >
-                                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                                             <span className="text-white font-medium text-sm">
                                                 {(user?.name || user?.email)?.charAt(0)?.toUpperCase()}
                                             </span>
+                                        </div>
+                                        <div className="hidden md:block text-left">
+                                            <p className="text-sm font-medium text-gray-900">{user?.name || user?.email}</p>
+                                            <p className="text-xs text-gray-500 capitalize">{user?.role?.replace('_', ' ')}</p>
                                         </div>
                                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
@@ -856,29 +1458,29 @@ export default function EquipmentInventory() {
 
                                     {/* User Dropdown */}
                                     {showUserMenu && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                                            <div className="px-4 py-2 border-b border-gray-100">
+                                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+                                            <div className="px-4 py-3 border-b border-gray-100">
                                                 <p className="text-sm font-medium text-gray-900">{user?.name || user?.email}</p>
-                                                <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                                                <p className="text-xs text-gray-500 capitalize">{user?.role?.replace('_', ' ')}</p>
                                             </div>
                                             <button
                                                 onClick={() => handleNavigation('/profile')}
-                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                                 </svg>
-                                                <span>Profile</span>
+                                                <span>Profile Settings</span>
                                             </button>
                                             <div className="border-t border-gray-100 my-1"></div>
                                             <button
                                                 onClick={handleLogout}
-                                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-3"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                                                 </svg>
-                                                <span>Logout</span>
+                                                <span>Sign Out</span>
                                             </button>
                                         </div>
                                     )}
@@ -888,21 +1490,23 @@ export default function EquipmentInventory() {
                     </div>
                 </header>
 
-                {/* Main Content */}
+                {/* Enhanced Main Content */}
                 <main className="p-6">
-                    {/* Page Header */}
+                    {/* Enhanced Page Header */}
                     <div className="mb-8">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900">Equipment Inventory</h1>
+                                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                                    Equipment Inventory
+                                </h1>
                                 <p className="mt-2 text-gray-600">
-                                    Manage and track all laboratory equipment and assets.
+                                    Manage and track all laboratory equipment and assets with detailed specifications.
                                 </p>
                             </div>
                             {user?.role === 'admin' && (
                                 <button
                                     onClick={() => setShowAddForm(true)}
-                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center space-x-2 font-medium"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
@@ -915,17 +1519,17 @@ export default function EquipmentInventory() {
 
                     {/* Error Display */}
                     {error && (
-                        <div className="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-lg">
+                        <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-xl p-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center">
-                                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <svg className="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path>
                                     </svg>
-                                    <span>{error}</span>
+                                    <span className="text-red-700 font-medium">{error}</span>
                                 </div>
                                 <button
                                     onClick={() => setError('')}
-                                    className="text-red-500 hover:text-red-700"
+                                    className="text-red-500 hover:text-red-700 transition-colors"
                                 >
                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
@@ -935,85 +1539,90 @@ export default function EquipmentInventory() {
                         </div>
                     )}
 
-                    {/* Stats Cards */}
+                    {/* Enhanced Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Total Equipment</p>
-                                    <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+                                    <p className="text-3xl font-bold text-gray-900 mt-1">{stats.total}</p>
+                                    <p className="text-xs text-gray-500 mt-1">All categories</p>
                                 </div>
-                                <div className="p-3 bg-blue-100 rounded-full">
+                                <div className="p-3 bg-blue-100 rounded-xl">
                                     <span className="text-2xl">📦</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Available</p>
-                                    <p className="text-3xl font-bold text-green-600">{stats.available}</p>
+                                    <p className="text-3xl font-bold text-green-600 mt-1">{stats.available}</p>
+                                    <p className="text-xs text-gray-500 mt-1">Ready to use</p>
                                 </div>
-                                <div className="p-3 bg-green-100 rounded-full">
+                                <div className="p-3 bg-green-100 rounded-xl">
                                     <span className="text-2xl">✅</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">In Use</p>
-                                    <p className="text-3xl font-bold text-orange-600">{stats.inUse}</p>
+                                    <p className="text-3xl font-bold text-orange-600 mt-1">{stats.inUse}</p>
+                                    <p className="text-xs text-gray-500 mt-1">Currently occupied</p>
                                 </div>
-                                <div className="p-3 bg-orange-100 rounded-full">
+                                <div className="p-3 bg-orange-100 rounded-xl">
                                     <span className="text-2xl">🔄</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Maintenance</p>
-                                    <p className="text-3xl font-bold text-red-600">{stats.maintenance}</p>
+                                    <p className="text-3xl font-bold text-red-600 mt-1">{stats.maintenance}</p>
+                                    <p className="text-xs text-gray-500 mt-1">Under repair</p>
                                 </div>
-                                <div className="p-3 bg-red-100 rounded-full">
+                                <div className="p-3 bg-red-100 rounded-xl">
                                     <span className="text-2xl">🔧</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">Broken</p>
-                                    <p className="text-3xl font-bold text-gray-600">{stats.broken}</p>
+                                    <p className="text-sm font-medium text-gray-600">Out of Order</p>
+                                    <p className="text-3xl font-bold text-gray-600 mt-1">{stats.broken}</p>
+                                    <p className="text-xs text-gray-500 mt-1">Needs attention</p>
                                 </div>
-                                <div className="p-3 bg-gray-100 rounded-full">
+                                <div className="p-3 bg-gray-100 rounded-xl">
                                     <span className="text-2xl">❌</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Search and Filter */}
-                    <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <h3 className="text-lg font-semibold mb-4 flex items-center">
-                            <span className="mr-2">🔍</span>
-                            Search & Filter Equipment
+                    {/* Enhanced Search and Filter */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900">
+                            <span className="mr-3 text-2xl">🔍</span>
+                            Advanced Search & Filters
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <input
                                 type="text"
-                                placeholder="Search equipment..."
+                                placeholder="Search by name, model, serial..."
                                 value={filters.search}
                                 onChange={(e) => handleFilterChange('search', e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             />
                             <select
                                 value={filters.lab_id}
                                 onChange={(e) => handleFilterChange('lab_id', e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             >
-                                <option value="">🏛️ All Labs</option>
+                                <option value="">🏛️ All Laboratories</option>
                                 {labs.map(lab => (
                                     <option key={lab.id} value={lab.id}>{lab.name}</option>
                                 ))}
@@ -1021,128 +1630,160 @@ export default function EquipmentInventory() {
                             <select
                                 value={filters.category}
                                 onChange={(e) => handleFilterChange('category', e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             >
                                 <option value="">📂 All Categories</option>
-                                <option value="computer">💻 Computer</option>
-                                <option value="printer">🖨️ Printer</option>
-                                <option value="projector">📽️ Projector</option>
-                                <option value="scanner">📄 Scanner</option>
-                                <option value="microscope">🔬 Microscope</option>
-                                <option value="centrifuge">🌀 Centrifuge</option>
-                                <option value="spectrophotometer">📊 Spectrophotometer</option>
-                                <option value="ph_meter">🧪 pH Meter</option>
-                                <option value="balance">⚖️ Balance</option>
-                                <option value="incubator">🌡️ Incubator</option>
-                                <option value="autoclave">🔥 Autoclave</option>
-                                <option value="pipette">💧 Pipette</option>
-                                <option value="thermometer">🌡️ Thermometer</option>
-                                <option value="glassware">🧪 Glassware</option>
-                                <option value="safety_equipment">🛡️ Safety Equipment</option>
-                                <option value="other">📦 Other</option>
+                                {categoryOptions.map(cat => (
+                                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                ))}
                             </select>
                             <select
                                 value={filters.status}
                                 onChange={(e) => handleFilterChange('status', e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                             >
                                 <option value="">📊 All Status</option>
                                 <option value="available">✅ Available</option>
                                 <option value="in_use">🔄 In Use</option>
                                 <option value="maintenance">🔧 Maintenance</option>
-                                <option value="broken">❌ Broken</option>
+                                <option value="broken">❌ Out of Order</option>
                                 <option value="retired">🚫 Retired</option>
                             </select>
                         </div>
                     </div>
 
-                    {/* Equipment Grid */}
+                    {/* Enhanced Equipment Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                        {equipment.map((item) => (
-                            <div key={item.id} className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow border border-gray-200">
-                                <div className="flex items-center justify-between mb-3">
-                                    <span className="text-2xl">{getCategoryIcon(item.category)}</span>
-                                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(item.status)}`}>
-                                        {item.status?.replace('_', ' ')}
-                                    </span>
-                                </div>
+                        {equipment.map((item) => {
+                            const categoryInfo = getCategoryInfo(item.category)
+                            return (
+                                <div key={item.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden group">
+                                    {/* Equipment Card Header */}
+                                    <div className="p-6 pb-4">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${categoryInfo.color}`}>
+                                                {categoryInfo.label}
+                                            </span>
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                                                {item.status?.replace('_', ' ')}
+                                            </span>
+                                        </div>
 
-                                <h3 className="font-bold text-gray-800 mb-2">{item.name}</h3>
+                                        <h3 className="font-bold text-gray-900 mb-3 text-lg group-hover:text-blue-600 transition-colors">
+                                            {item.name}
+                                        </h3>
 
-                                <div className="text-sm text-gray-600 space-y-1">
-                                    <p><span className="font-medium">🏷️ Category:</span> {item.category}</p>
-                                    <p><span className="font-medium">🏛️ Lab:</span> {item.lab?.name || 'Unassigned'}</p>
-                                    {item.model && <p><span className="font-medium">📋 Model:</span> {item.model}</p>}
-                                    {item.serial_number && <p><span className="font-medium">🔢 S/N:</span> {item.serial_number}</p>}
-                                    {item.manufacturer && <p><span className="font-medium">🏭 Brand:</span> {item.manufacturer}</p>}
-                                </div>
-
-                                <div className="mt-4 flex gap-2">
-                                    <button
-                                        onClick={() => navigate(`/equipment/${item.id}`)}
-                                        className="flex-1 bg-blue-600 text-white py-1 px-2 rounded text-sm hover:bg-blue-700 text-center"
-                                    >
-                                        👁️ View
-                                    </button>
-                                    {user?.role === 'admin' && (
-                                        <>
-                                            <button
-                                                onClick={() => navigate(`/equipment/${item.id}/edit`)}
-                                                className="flex-1 bg-green-600 text-white py-1 px-2 rounded text-sm hover:bg-green-700 text-center"
-                                            >
-                                                ✏️ Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(item.id)}
-                                                className="flex-1 bg-red-600 text-white py-1 px-2 rounded text-sm hover:bg-red-700"
-                                            >
-                                                🗑️ Del
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-
-                                {/* Quick Status Actions */}
-                                {item.status === 'available' && (
-                                    <div className="mt-2">
-                                        <button
-                                            onClick={() => handleStatusUpdate(item.id, 'in_use')}
-                                            className="w-full bg-orange-100 text-orange-800 py-1 px-2 rounded text-xs hover:bg-orange-200"
-                                        >
-                                            🔄 Mark as In Use
-                                        </button>
+                                        <div className="space-y-2 text-sm text-gray-600">
+                                            <div className="flex items-center">
+                                                <span className="w-20 font-medium">🏛️ Lab:</span>
+                                                <span className="flex-1">{item.lab?.name || 'Unassigned'}</span>
+                                            </div>
+                                            {item.model && (
+                                                <div className="flex items-center">
+                                                    <span className="w-20 font-medium">📋 Model:</span>
+                                                    <span className="flex-1 truncate">{item.model}</span>
+                                                </div>
+                                            )}
+                                            {item.serial_number && (
+                                                <div className="flex items-center">
+                                                    <span className="w-20 font-medium">🔢 S/N:</span>
+                                                    <span className="flex-1 font-mono text-xs">{item.serial_number}</span>
+                                                </div>
+                                            )}
+                                            {item.manufacturer && (
+                                                <div className="flex items-center">
+                                                    <span className="w-20 font-medium">🏭 Brand:</span>
+                                                    <span className="flex-1 truncate">{item.manufacturer}</span>
+                                                </div>
+                                            )}
+                                            {item.location_details && (
+                                                <div className="flex items-center">
+                                                    <span className="w-20 font-medium">📍 Location:</span>
+                                                    <span className="flex-1 truncate">{item.location_details}</span>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
-                                {item.status === 'in_use' && (
-                                    <div className="mt-2">
-                                        <button
-                                            onClick={() => handleStatusUpdate(item.id, 'available')}
-                                            className="w-full bg-green-100 text-green-800 py-1 px-2 rounded text-xs hover:bg-green-200"
-                                        >
-                                            ✅ Mark as Available
-                                        </button>
+
+                                    {/* Equipment Card Actions */}
+                                    <div className="px-6 pb-6">
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => navigate(`/equipment/${item.id}`)}
+                                                className="flex-1 bg-blue-50 text-blue-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center space-x-1"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                </svg>
+                                                <span>View</span>
+                                            </button>
+                                            {user?.role === 'admin' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => navigate(`/equipment/${item.id}/edit`)}
+                                                        className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center justify-center space-x-1"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                        </svg>
+                                                        <span>Edit</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(item.id)}
+                                                        className="bg-red-50 text-red-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        </svg>
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {/* Quick Status Actions */}
+                                        {item.status === 'available' && (
+                                            <div className="mt-3">
+                                                <button
+                                                    onClick={() => handleStatusUpdate(item.id, 'in_use')}
+                                                    className="w-full bg-orange-50 text-orange-700 py-2 px-3 rounded-lg text-xs font-medium hover:bg-orange-100 transition-colors"
+                                                >
+                                                    🔄 Mark as In Use
+                                                </button>
+                                            </div>
+                                        )}
+                                        {item.status === 'in_use' && (
+                                            <div className="mt-3">
+                                                <button
+                                                    onClick={() => handleStatusUpdate(item.id, 'available')}
+                                                    className="w-full bg-green-50 text-green-700 py-2 px-3 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors"
+                                                >
+                                                    ✅ Mark as Available
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        ))}
+                                </div>
+                            )
+                        })}
                     </div>
 
-                    {/* No Results */}
+                    {/* Enhanced No Results */}
                     {equipment.length === 0 && (
-                        <div className="text-center py-12 bg-white rounded-lg shadow">
-                            <div className="text-6xl mb-4">📦</div>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">No Equipment Found</h3>
-                            <p className="text-gray-500 mb-4">
+                        <div className="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-200">
+                            <div className="text-8xl mb-6">📦</div>
+                            <h3 className="text-2xl font-bold text-gray-800 mb-3">No Equipment Found</h3>
+                            <p className="text-gray-500 mb-6 max-w-md mx-auto">
                                 {labs.length === 0
-                                    ? '🏛️ Please create a lab first before adding equipment'
-                                    : '➕ Click "Add Equipment" to get started'}
+                                    ? '🏛️ Please create a laboratory first before adding equipment'
+                                    : '➕ Start building your equipment inventory by adding your first item'}
                             </p>
-                            {user?.role === 'admin' && (
+                            {user?.role === 'admin' && labs.length > 0 && (
                                 <button
                                     onClick={() => setShowAddForm(true)}
-                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl font-medium"
                                 >
-                                    ➕ Add Equipment
+                                    ➕ Add Your First Equipment
                                 </button>
                             )}
                         </div>
@@ -1150,7 +1791,7 @@ export default function EquipmentInventory() {
                 </main>
             </div>
 
-            {/* Add Equipment Modal */}
+            {/* Enhanced Add Equipment Modal */}
             {user?.role === 'admin' && (
                 <AddEquipmentModal
                     isOpen={showAddForm}

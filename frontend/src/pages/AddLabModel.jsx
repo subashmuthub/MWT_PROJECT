@@ -208,7 +208,7 @@ function AddLab() {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/labs', {
+            const response = await fetch('/api/labs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

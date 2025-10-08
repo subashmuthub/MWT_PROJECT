@@ -1,3 +1,4 @@
+// src/services/api.js - UPDATED VERSION
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const apiCall = async (endpoint, options = {}) => {
@@ -17,8 +18,14 @@ const apiCall = async (endpoint, options = {}) => {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP ${response.status}: ${errorText}`);
+            let errorMessage;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error || `HTTP ${response.status}`;
+            } catch {
+                errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
@@ -26,6 +33,12 @@ const apiCall = async (endpoint, options = {}) => {
         return data;
     } catch (error) {
         console.error('API Error:', error);
+        
+        // Handle network errors
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            throw new Error('Network error. Please check your connection.');
+        }
+        
         throw error;
     }
 };
@@ -59,12 +72,14 @@ const downloadFile = async (endpoint, filename) => {
     }
 };
 
-// ✅ ADDED: Users API - This was missing!
+// ✅ UPDATED: Users API - Fixed to match backend response format
 export const usersAPI = {
-    // Get all users
-    getAll: (params = {}) => {
+    // Get all users - Fixed to handle the array response from backend
+    getAll: async (params = {}) => {
         const queryString = new URLSearchParams(params).toString();
-        return apiCall(`/users${queryString ? '?' + queryString : ''}`);
+        const response = await apiCall(`/users${queryString ? '?' + queryString : ''}`);
+        // Backend returns array directly, not wrapped in data object
+        return Array.isArray(response) ? response : response.data || response;
     },
 
     // Get user statistics
@@ -73,28 +88,40 @@ export const usersAPI = {
     // Get user by ID
     getById: (id) => apiCall(`/users/${id}`),
 
-    // Create new user
-    create: (userData) => apiCall('/users', {
-        method: 'POST',
-        body: JSON.stringify(userData),
-    }),
+    // Create new user - Fixed to handle backend response format
+    create: async (userData) => {
+        const response = await apiCall('/users', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+        });
+        return response; // Backend returns { success: true, message: ..., user: ... }
+    },
 
-    // Update user
-    update: (id, userData) => apiCall(`/users/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(userData),
-    }),
+    // Update user - Fixed to handle backend response format
+    update: async (id, userData) => {
+        const response = await apiCall(`/users/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(userData),
+        });
+        return response; // Backend returns { success: true, message: ..., user: ... }
+    },
 
     // Update user status
-    updateStatus: (id, status) => apiCall(`/users/${id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status }),
-    }),
+    updateStatus: async (id, status) => {
+        const response = await apiCall(`/users/${id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+        });
+        return response;
+    },
 
     // Reset user password
-    resetPassword: (id) => apiCall(`/users/${id}/reset-password`, {
-        method: 'POST',
-    }),
+    resetPassword: async (id) => {
+        const response = await apiCall(`/users/${id}/reset-password`, {
+            method: 'POST',
+        });
+        return response;
+    },
 
     // Delete user
     delete: (id) => apiCall(`/users/${id}`, {
@@ -102,7 +129,10 @@ export const usersAPI = {
     }),
 
     // Get current user profile
-    getProfile: () => apiCall('/users/profile'),
+    getProfile: async () => {
+        const response = await apiCall('/users/profile');
+        return response.user || response; // Handle both formats
+    },
 
     // Update current user profile
     updateProfile: (profileData) => apiCall('/users/profile', {
@@ -120,121 +150,187 @@ export const usersAPI = {
     test: () => apiCall('/users/test'),
 };
 
-// Authentication API
+// ✅ UPDATED: Authentication API - Fixed response handling
 export const authAPI = {
-    login: (credentials) => apiCall('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(credentials),
-    }),
+    login: async (credentials) => {
+        const response = await apiCall('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify(credentials),
+        });
+        return response;
+    },
+    
     logout: () => apiCall('/auth/logout', { method: 'POST' }),
+    
     getCurrentUser: () => apiCall('/auth/me'),
+    
     register: (userData) => apiCall('/auth/register', {
         method: 'POST',
         body: JSON.stringify(userData),
     }),
+    
     forgotPassword: (email) => apiCall('/auth/forgot-password', {
         method: 'POST',
         body: JSON.stringify({ email }),
     }),
+    
     resetPassword: (token, password) => apiCall('/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify({ token, password }),
     }),
+    
+    // ✅ ADDED: Verify token endpoint
+    verifyToken: () => apiCall('/auth/verify'),
 };
 
-// Equipment API
+// ✅ UPDATED: Equipment API - Fixed to match backend response format
 export const equipmentAPI = {
-    getEquipment: (params = {}) => {
+    getEquipment: async (params = {}) => {
         const queryString = new URLSearchParams(params).toString();
-        return apiCall(`/equipment${queryString ? '?' + queryString : ''}`);
+        const response = await apiCall(`/equipment${queryString ? '?' + queryString : ''}`);
+        // Backend returns { success: true, data: { equipment: [...], pagination: {...} } }
+        return response.data || response;
     },
+    
     getEquipmentById: (id) => apiCall(`/equipment/${id}`),
+    
     createEquipment: (data) => apiCall('/equipment', {
         method: 'POST',
         body: JSON.stringify(data),
     }),
+    
     updateEquipment: (id, data) => apiCall(`/equipment/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
     }),
+    
     deleteEquipment: (id) => apiCall(`/equipment/${id}`, {
         method: 'DELETE',
     }),
-    getStats: () => apiCall('/equipment/stats'),
+    
+    getStats: async () => {
+        const response = await apiCall('/equipment/stats');
+        return response.data || response;
+    },
+    
+    // ✅ ADDED: Get status summary
+    getStatusSummary: async () => {
+        const response = await apiCall('/equipment/status-summary');
+        return response.data || response;
+    },
+    
     testEquipment: () => apiCall('/equipment/test'),
 };
 
-// Bookings API
+// ✅ UPDATED: Bookings API - Fixed to match backend response format
 export const bookingsAPI = {
-    getBookings: (params = {}) => {
+    getBookings: async (params = {}) => {
         const queryString = new URLSearchParams(params).toString();
-        return apiCall(`/bookings${queryString ? '?' + queryString : ''}`);
+        const response = await apiCall(`/bookings${queryString ? '?' + queryString : ''}`);
+        // Backend returns { success: true, data: { bookings: [...] } }
+        return response.data?.bookings || response.data || response;
     },
-    getBookingById: (id) => apiCall(`/bookings/${id}`),
-    createBooking: (data) => apiCall('/bookings', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    }),
+    
+    getBookingById: async (id) => {
+        const response = await apiCall(`/bookings/${id}`);
+        return response.data?.booking || response.data || response;
+    },
+    
+    createBooking: async (data) => {
+        const response = await apiCall('/bookings', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+        return response;
+    },
+    
     updateBooking: (id, data) => apiCall(`/bookings/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
     }),
+    
     deleteBooking: (id) => apiCall(`/bookings/${id}`, {
         method: 'DELETE',
     }),
+    
     approveBooking: (id) => apiCall(`/bookings/${id}/approve`, {
         method: 'PATCH',
     }),
+    
     rejectBooking: (id, reason) => apiCall(`/bookings/${id}/reject`, {
         method: 'PATCH',
         body: JSON.stringify({ reason }),
     }),
-    getStats: () => apiCall('/bookings/stats'),
+    
+    getStats: async () => {
+        const response = await apiCall('/bookings/stats');
+        return response.data || response;
+    },
+    
+    // ✅ ADDED: Get upcoming bookings
+    getUpcoming: async (params = {}) => {
+        const response = await apiCall(`/bookings/upcoming?${new URLSearchParams(params).toString()}`);
+        return response.data || response;
+    },
+    
     testBookings: () => apiCall('/bookings/test'),
 };
 
-// Maintenance API
+// ✅ ADDED: Labs API - This was missing
+export const labsAPI = {
+    getAll: async (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        const response = await apiCall(`/labs${queryString ? '?' + queryString : ''}`);
+        return response.data?.labs || response.data || response;
+    },
+    
+    getById: (id) => apiCall(`/labs/${id}`),
+    
+    create: (data) => apiCall('/labs', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }),
+    
+    update: (id, data) => apiCall(`/labs/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }),
+    
+    delete: (id) => apiCall(`/labs/${id}`, {
+        method: 'DELETE',
+    }),
+    
+    getStats: async () => {
+        const response = await apiCall('/labs/stats');
+        return response.data || response;
+    },
+};
+
+// Keep the rest of your existing APIs...
 export const maintenanceAPI = {
-    // Get all maintenance records
     getAll: (params = {}) => {
         const queryString = new URLSearchParams(params).toString();
         return apiCall(`/maintenance${queryString ? '?' + queryString : ''}`);
     },
-
-    // Get maintenance statistics
     getStats: () => apiCall('/maintenance/stats/summary'),
-
-    // Get maintenance by ID
     getById: (id) => apiCall(`/maintenance/${id}`),
-
-    // Create new maintenance record
     create: (maintenanceData) => apiCall('/maintenance', {
         method: 'POST',
         body: JSON.stringify(maintenanceData),
     }),
-
-    // Update maintenance record
     update: (id, maintenanceData) => apiCall(`/maintenance/${id}`, {
         method: 'PUT',
         body: JSON.stringify(maintenanceData),
     }),
-
-    // Delete maintenance record
     delete: (id) => apiCall(`/maintenance/${id}`, {
         method: 'DELETE',
     }),
-
-    // Get upcoming maintenance
     getUpcoming: (days = 7) => apiCall(`/maintenance/upcoming/week?days=${days}`),
-
-    // Get overdue maintenance
     getOverdue: () => apiCall('/maintenance/overdue/list'),
-
-    // Test maintenance endpoint
     test: () => apiCall('/maintenance/test'),
 };
 
-// Reports API
+// Your existing reportsAPI, ordersAPI, dashboardAPI...
 export const reportsAPI = {
     testConnection: () => apiCall('/reports/test'),
     getQuickStats: () => apiCall('/reports/quick-stats'),
@@ -254,9 +350,95 @@ export const reportsAPI = {
     }),
     downloadReport: (id, filename) => downloadFile(`/reports/download/${id}`, filename || `report_${id}.json`),
     getSchedules: () => apiCall('/reports/schedules/list'),
+    downloadExcelReport: async (id, filename) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/reports/download/${id}/excel`, {
+                headers: {
+                    ...(token && { Authorization: `Bearer ${token}` }),
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename || `LabMS_Report_${id}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Excel Download Error:', error);
+            throw error;
+        }
+    },
+    generateAndDownloadExcel: async (reportData) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/reports/generate-excel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` }),
+                },
+                body: JSON.stringify(reportData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `LabMS_${reportData.reportType}_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Excel Generation Error:', error);
+            throw error;
+        }
+    },
+    generateComprehensiveExcel: async (dateRange, customStartDate = null, customEndDate = null) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_BASE_URL}/reports/generate-comprehensive-excel`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token && { Authorization: `Bearer ${token}` }),
+                },
+                body: JSON.stringify({ dateRange, customStartDate, customEndDate })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `LabMS_Comprehensive_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Comprehensive Excel Generation Error:', error);
+            throw error;
+        }
+    },
 };
 
-// Orders API
 export const ordersAPI = {
     getOrders: (params = {}) => {
         const queryString = new URLSearchParams(params).toString();
@@ -278,12 +460,33 @@ export const ordersAPI = {
     testOrders: () => apiCall('/orders/test'),
 };
 
-// Dashboard API
+// ✅ UPDATED: Dashboard API - Added missing endpoints
 export const dashboardAPI = {
     getOverview: () => apiCall('/dashboard/overview'),
     getRecentActivity: () => apiCall('/dashboard/recent-activity'),
     getStats: () => apiCall('/dashboard/stats'),
     getNotifications: () => apiCall('/dashboard/notifications'),
+    
+    // ✅ ADDED: Dashboard specific endpoints that your Dashboard component uses
+    getActivities: async (params = {}) => {
+        const response = await apiCall(`/activities/recent?${new URLSearchParams(params).toString()}`);
+        return response.data || response;
+    },
+    
+    getSystemAlerts: async (params = {}) => {
+        const response = await apiCall(`/system/alerts?${new URLSearchParams(params).toString()}`);
+        return response.data || response;
+    },
+    
+    getSystemHealth: async () => {
+        const response = await apiCall('/system/health');
+        return response.data || response;
+    },
+    
+    getSystemMetrics: async () => {
+        const response = await apiCall('/system/metrics');
+        return response.data || response;
+    },
 };
 
 // Default export with all APIs
@@ -292,6 +495,7 @@ export default {
     auth: authAPI,
     equipment: equipmentAPI,
     bookings: bookingsAPI,
+    labs: labsAPI, // ✅ ADDED
     maintenance: maintenanceAPI,
     reports: reportsAPI,
     orders: ordersAPI,
@@ -302,4 +506,4 @@ export default {
 export {
     API_BASE_URL,
     apiCall,
-}; 
+};

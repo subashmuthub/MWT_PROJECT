@@ -1,4 +1,4 @@
-// src/pages/ReportsAnalytics.jsx - Professional Reports & Analytics with Sidebar
+// src/pages/ReportsAnalytics.jsx - Professional Reports & Analytics with Excel Export
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -8,6 +8,8 @@ export default function ReportsAnalytics() {
     // Reports-specific state
     const [selectedReport, setSelectedReport] = useState('usage')
     const [dateRange, setDateRange] = useState('last30days')
+    const [customStartDate, setCustomStartDate] = useState('')
+    const [customEndDate, setCustomEndDate] = useState('')
     const [quickStats, setQuickStats] = useState({
         totalBookings: { current: 0, change: 0 },
         equipmentUtilization: { percentage: 0, change: 0 },
@@ -316,7 +318,9 @@ export default function ReportsAnalytics() {
 
             const reportData = {
                 reportType: selectedReport,
-                dateRange: dateRange
+                dateRange: dateRange === 'custom' ? 'custom' : dateRange,
+                customStartDate: dateRange === 'custom' ? customStartDate : null,
+                customEndDate: dateRange === 'custom' ? customEndDate : null
             }
 
             const response = await reportsAPI.generateReport(reportData)
@@ -330,6 +334,57 @@ export default function ReportsAnalytics() {
             }
         } catch (err) {
             setError(`Failed to generate report: ${err.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // ✅ NEW: Excel Export Functions
+    const handleGenerateAndDownloadExcel = async () => {
+        try {
+            setLoading(true)
+            setError('')
+
+            const reportData = {
+                reportType: selectedReport,
+                dateRange: dateRange === 'custom' ? 'custom' : dateRange,
+                customStartDate: dateRange === 'custom' ? customStartDate : null,
+                customEndDate: dateRange === 'custom' ? customEndDate : null
+            }
+
+            await reportsAPI.generateAndDownloadExcel(reportData)
+            showSuccessMessage('📊 Excel report downloaded successfully!')
+        } catch (err) {
+            setError(`Failed to generate Excel report: ${err.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleDownloadExcelReport = async (reportId, reportTitle) => {
+        try {
+            setError('')
+            const filename = `${reportTitle.replace(/\s+/g, '_')}_${reportId}.xlsx`
+            await reportsAPI.downloadExcelReport(reportId, filename)
+            showSuccessMessage('📊 Excel report downloaded successfully!')
+        } catch (err) {
+            setError(`Failed to download Excel report: ${err.message}`)
+        }
+    }
+
+    const handleGenerateComprehensiveExcel = async () => {
+        try {
+            setLoading(true)
+            setError('')
+
+            await reportsAPI.generateComprehensiveExcel(
+                dateRange === 'custom' ? 'custom' : dateRange,
+                dateRange === 'custom' ? customStartDate : null,
+                dateRange === 'custom' ? customEndDate : null
+            )
+            showSuccessMessage('📊 Comprehensive Excel report downloaded successfully!')
+        } catch (err) {
+            setError(`Failed to generate comprehensive Excel report: ${err.message}`)
         } finally {
             setLoading(false)
         }
@@ -459,7 +514,7 @@ export default function ReportsAnalytics() {
     const showSuccessMessage = (message) => {
         const successDiv = document.createElement('div')
         successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50'
-        successDiv.textContent = `✅ ${message}`
+        successDiv.textContent = message
         document.body.appendChild(successDiv)
         setTimeout(() => {
             if (document.body.contains(successDiv)) {
@@ -852,7 +907,7 @@ export default function ReportsAnalytics() {
                     {/* Report Generation */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
                         <h2 className="text-xl font-semibold text-gray-900 mb-6">Generate Report</h2>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Report Type
@@ -886,9 +941,38 @@ export default function ReportsAnalytics() {
                                     <option value="last3months">Last 3 Months</option>
                                     <option value="last6months">Last 6 Months</option>
                                     <option value="lastyear">Last Year</option>
+                                    <option value="custom">Custom Range</option>
                                 </select>
                             </div>
+                            {dateRange === 'custom' && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Start Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={customStartDate}
+                                            onChange={(e) => setCustomStartDate(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            End Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={customEndDate}
+                                            onChange={(e) => setCustomEndDate(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Action Buttons */}
                         <div className="mt-6 flex flex-wrap gap-4">
                             <button
                                 onClick={handleGenerateReport}
@@ -900,20 +984,44 @@ export default function ReportsAnalytics() {
                                 </svg>
                                 <span>{loading ? 'Generating...' : 'Generate Report'}</span>
                             </button>
+
+                            <button
+                                onClick={handleGenerateAndDownloadExcel}
+                                disabled={loading}
+                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>📊 Generate Excel Report</span>
+                            </button>
+
+                            <button
+                                onClick={handleGenerateComprehensiveExcel}
+                                disabled={loading}
+                                className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                                <span>📈 Comprehensive Excel</span>
+                            </button>
+
                             <button
                                 onClick={handleExportJSON}
                                 disabled={!generatedReportData || loading}
-                                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
                                 <span>Export JSON</span>
                             </button>
+
                             <button
                                 onClick={handleExportCSV}
                                 disabled={!generatedReportData || loading}
-                                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -923,7 +1031,7 @@ export default function ReportsAnalytics() {
                         </div>
                         {!generatedReportData && (
                             <p className="text-sm text-gray-500 mt-4">
-                                Generate a report first to enable export options
+                                📊 Excel reports include comprehensive documentation, multiple worksheets, and professional formatting. Generate a report first to enable JSON/CSV export options.
                             </p>
                         )}
                     </div>
@@ -967,8 +1075,8 @@ export default function ReportsAnalytics() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                         </svg>
                                     </div>
-                                    <p className="text-gray-600 mb-2">Chart will be implemented here</p>
-                                    <p className="text-sm text-gray-400">Future enhancement: Interactive charts</p>
+                                    <p className="text-gray-600 mb-2">Charts included in Excel reports</p>
+                                    <p className="text-sm text-gray-400">Download Excel for interactive charts</p>
                                 </div>
                             </div>
                         </div>
@@ -1031,18 +1139,26 @@ export default function ReportsAnalytics() {
                                             </div>
                                             <div className="flex space-x-2 ml-4">
                                                 {report.status === 'completed' && (
-                                                    <button
-                                                        onClick={() => handleViewReport(report.id)}
-                                                        className="text-blue-600 hover:text-blue-700 px-3 py-1 text-sm border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
-                                                    >
-                                                        View
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleViewReport(report.id)}
+                                                            className="text-blue-600 hover:text-blue-700 px-3 py-1 text-sm border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                                                        >
+                                                            View
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDownloadExcelReport(report.id, report.title)}
+                                                            className="text-green-600 hover:text-green-700 px-3 py-1 text-sm border border-green-200 rounded-lg hover:bg-green-50 transition-colors"
+                                                        >
+                                                            📊 Excel
+                                                        </button>
+                                                    </>
                                                 )}
                                                 <button
                                                     onClick={() => handleDownloadReport(report.id, report.title)}
                                                     className="text-green-600 hover:text-green-700 px-3 py-1 text-sm border border-green-200 rounded-lg hover:bg-green-50 transition-colors"
                                                 >
-                                                    Download
+                                                    JSON
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteReport(report.id)}

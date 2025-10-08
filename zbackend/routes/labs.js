@@ -1,11 +1,43 @@
-// routes/labs.js - Add ALL these imports at the top
 const express = require('express');
 const router = express.Router();
-const Lab = require('../models/Lab');
-const User = require('../models/User');        // ← Add this
-const Equipment = require('../models/Equipment');
-const Booking = require('../models/Booking');
-const { authenticate, authorize } = require('../middleware/auth');
+const { Lab, User, Equipment, Booking } = require('../models');
+const { Op } = require('sequelize');
+const { authenticateToken } = require('../middleware/auth');
+
+// GET lab statistics
+router.get('/stats', async (req, res) => {
+    try {
+        const totalLabs = await Lab.count({ where: { is_active: true } });
+        const computerLabs = await Lab.count({ 
+            where: { is_active: true, lab_type: 'computer_lab' } 
+        });
+        const chemistryLabs = await Lab.count({ 
+            where: { is_active: true, lab_type: 'chemistry_lab' } 
+        });
+        const biologyLabs = await Lab.count({ 
+            where: { is_active: true, lab_type: 'biology_lab' } 
+        });
+
+        res.json({
+            success: true,
+            data: {
+                total: totalLabs,
+                computerLabs,
+                chemistryLabs,
+                biologyLabs
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching lab stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch lab statistics',
+            error: error.message
+        });
+    }
+});
+
+// GET all labs
 router.get('/', async (req, res) => {
     try {
         const { page = 1, limit = 50, search } = req.query;
@@ -26,8 +58,9 @@ router.get('/', async (req, res) => {
             include: [
                 {
                     model: User,
-                    as: 'creator',
-                    attributes: ['id', 'name', 'email']
+                    as: 'labCreator', // ✅ FIXED: Updated alias
+                    attributes: ['id', 'name', 'email'],
+                    required: false
                 }
             ],
             order: [['created_at', 'DESC']],
@@ -57,40 +90,15 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Add this route in routes/labs.js
-router.get('/stats/dashboard', async (req, res) => {
-    try {
-        const totalLabs = await Lab.count({ where: { is_active: true } });
-        const totalEquipment = await Equipment.count();
-        const totalBookings = await Booking.count();
-
-        res.json({
-            success: true,
-            data: {
-                totalLabs,
-                totalEquipment,
-                totalBookings,
-                // Add more stats as needed
-            }
-        });
-    } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching dashboard statistics'
-        });
-    }
-});
 // POST create new lab
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
     try {
         const {
             name,
             lab_type,
             location,
             capacity,
-            description,
-            created_by
+            description
         } = req.body;
 
         if (!name || !lab_type) {
@@ -106,7 +114,7 @@ router.post('/', async (req, res) => {
             location,
             capacity: capacity ? parseInt(capacity) : null,
             description,
-            created_by
+            created_by: req.user.userId
         });
 
         res.status(201).json({

@@ -1,22 +1,9 @@
-// routes/orders.js - Updated to use your existing middleware
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { Order, User } = require('../models');
 const router = express.Router();
-
-// Import models
-let Order, User;
-
-try {
-    const models = require('../models');
-    Order = models.Order || require('../models/Order');
-    User = models.User || require('../models/User');
-} catch (error) {
-    console.error('Error importing models:', error);
-    Order = require('../models/Order');
-    User = require('../models/User');
-}
 
 // Order validation
 const orderValidation = [
@@ -29,30 +16,9 @@ const orderValidation = [
     body('priority').optional().isIn(['Low', 'Medium', 'High']).withMessage('Invalid priority')
 ];
 
-// GET /api/orders/test - Test orders routes (No auth required)
-router.get('/test', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Orders routes are working!',
-        timestamp: new Date().toISOString(),
-        note: 'All other endpoints require admin authentication',
-        availableEndpoints: {
-            getAll: 'GET /api/orders (Admin only)',
-            getById: 'GET /api/orders/:id (Admin only)',
-            create: 'POST /api/orders (Admin only)',
-            update: 'PUT /api/orders/:id (Admin only)',
-            delete: 'DELETE /api/orders/:id (Admin only)',
-            stats: 'GET /api/orders/stats/summary (Admin only)',
-            test: 'GET /api/orders/test (Public)'
-        }
-    });
-});
-
-// GET /api/orders/stats/summary - Get order statistics (Admin only)
-router.get('/stats/summary', authenticateToken, requireAdmin, async (req, res) => {
+// GET order statistics
+router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        console.log('📊 Fetching order statistics for admin:', req.user.email);
-
         const totalOrders = await Order.count();
         const pendingOrders = await Order.count({ where: { status: 'Pending' } });
         const approvedOrders = await Order.count({ where: { status: 'Approved' } });
@@ -60,8 +26,6 @@ router.get('/stats/summary', authenticateToken, requireAdmin, async (req, res) =
 
         const totalValue = await Order.sum('total_amount') || 0;
         const pendingValue = await Order.sum('total_amount', { where: { status: 'Pending' } }) || 0;
-
-        console.log('✅ Order statistics calculated');
 
         res.json({
             success: true,
@@ -76,24 +40,22 @@ router.get('/stats/summary', authenticateToken, requireAdmin, async (req, res) =
         });
 
     } catch (error) {
-        console.error('💥 Error fetching order statistics:', error);
+        console.error('Error fetching order statistics:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch order statistics',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+            error: error.message
         });
     }
 });
 
-// Apply authentication and admin requirement to all routes below
+// Apply authentication and admin requirement to remaining routes
 router.use(authenticateToken);
 router.use(requireAdmin);
 
-// GET /api/orders - Get all orders (Admin only)
+// GET all orders
 router.get('/', async (req, res) => {
     try {
-        console.log('📦 Fetching orders for admin:', req.user.email);
-
         const { page = 1, limit = 10, status, search } = req.query;
         const offset = (page - 1) * limit;
         const whereClause = {};
@@ -109,34 +71,20 @@ router.get('/', async (req, res) => {
             ];
         }
 
-        // Try with associations first, fallback without if association fails
-        let ordersData;
-        try {
-            ordersData = await Order.findAndCountAll({
-                where: whereClause,
-                include: [
-                    {
-                        model: User,
-                        as: 'creator',
-                        attributes: ['id', 'name', 'email'],
-                        required: false // LEFT JOIN instead of INNER JOIN
-                    }
-                ],
-                order: [['created_at', 'DESC']],
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            });
-        } catch (associationError) {
-            console.log('Association failed, fetching without associations:', associationError.message);
-            ordersData = await Order.findAndCountAll({
-                where: whereClause,
-                order: [['created_at', 'DESC']],
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            });
-        }
-
-        console.log(`✅ Found ${ordersData.count} orders`);
+        const ordersData = await Order.findAndCountAll({
+            where: whereClause,
+            include: [
+                {
+                    model: User,
+                    as: 'orderCreator', // ✅ FIXED: Updated alias
+                    attributes: ['id', 'name', 'email'],
+                    required: false
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
 
         res.json({
             success: true,
@@ -149,37 +97,27 @@ router.get('/', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('💥 Error fetching orders:', error);
+        console.error('Error fetching orders:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch orders',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+            error: error.message
         });
     }
 });
 
-// GET /api/orders/:id - Get single order by ID (Admin only)
+// GET single order by ID
 router.get('/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-
-        console.log(`📦 Fetching order with ID: ${id} for admin:`, req.user.email);
-
-        let order;
-        try {
-            order = await Order.findByPk(id, {
-                include: [
-                    {
-                        model: User,
-                        as: 'creator',
-                        attributes: ['id', 'name', 'email']
-                    }
-                ]
-            });
-        } catch (associationError) {
-            console.log('Association failed, fetching without associations');
-            order = await Order.findByPk(id);
-        }
+        const order = await Order.findByPk(req.params.id, {
+            include: [
+                {
+                    model: User,
+                    as: 'orderCreator', // ✅ FIXED: Updated alias
+                    attributes: ['id', 'name', 'email']
+                }
+            ]
+        });
 
         if (!order) {
             return res.status(404).json({
@@ -188,33 +126,26 @@ router.get('/:id', async (req, res) => {
             });
         }
 
-        console.log('✅ Order found');
-
         res.json({
             success: true,
             data: order
         });
 
     } catch (error) {
-        console.error('💥 Error fetching order:', error);
+        console.error('Error fetching order:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch order',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+            error: error.message
         });
     }
 });
 
-// POST /api/orders - Create new order (Admin only)
+// POST create new order
 router.post('/', orderValidation, async (req, res) => {
     try {
-        console.log('📦 Creating new order for admin:', req.user.email);
-        console.log('User info:', req.user);
-
-        // Check validation results
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            console.log('❌ Validation errors:', errors.array());
             return res.status(400).json({
                 success: false,
                 message: 'Validation failed',
@@ -235,18 +166,6 @@ router.post('/', orderValidation, async (req, res) => {
             description
         } = req.body;
 
-        console.log('Creating order with data:', {
-            supplier: supplier?.trim(),
-            equipment_name: equipment_name?.trim(),
-            quantity: parseInt(quantity),
-            unit_price: parseFloat(unit_price),
-            total_amount: parseFloat(total_amount),
-            status,
-            priority,
-            created_by: req.user.userId
-        });
-
-        // Create order
         const order = await Order.create({
             supplier: supplier.trim(),
             equipment_name: equipment_name.trim(),
@@ -261,24 +180,15 @@ router.post('/', orderValidation, async (req, res) => {
             created_by: req.user.userId
         });
 
-        console.log('✅ Order created successfully:', order.id);
-
-        // Try to fetch with associations, fallback without
-        let createdOrder;
-        try {
-            createdOrder = await Order.findByPk(order.id, {
-                include: [
-                    {
-                        model: User,
-                        as: 'creator',
-                        attributes: ['id', 'name', 'email']
-                    }
-                ]
-            });
-        } catch (associationError) {
-            console.log('Association failed, returning basic order data');
-            createdOrder = order;
-        }
+        const createdOrder = await Order.findByPk(order.id, {
+            include: [
+                {
+                    model: User,
+                    as: 'orderCreator',
+                    attributes: ['id', 'name', 'email']
+                }
+            ]
+        });
 
         res.status(201).json({
             success: true,
@@ -287,9 +197,8 @@ router.post('/', orderValidation, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('💥 Error creating order:', error);
+        console.error('Error creating order:', error);
 
-        // Handle Sequelize validation errors
         if (error.name === 'SequelizeValidationError') {
             return res.status(400).json({
                 success: false,
@@ -304,22 +213,16 @@ router.post('/', orderValidation, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to create order',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+            error: error.message
         });
     }
 });
 
-// PUT /api/orders/:id - Update order (Admin only)
+// PUT update order
 router.put('/:id', orderValidation, async (req, res) => {
     try {
-        const { id } = req.params;
-
-        console.log(`📦 Updating order with ID: ${id} by admin:`, req.user.email);
-
-        // Check validation results
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            console.log('❌ Validation errors:', errors.array());
             return res.status(400).json({
                 success: false,
                 message: 'Validation failed',
@@ -327,7 +230,7 @@ router.put('/:id', orderValidation, async (req, res) => {
             });
         }
 
-        const order = await Order.findByPk(id);
+        const order = await Order.findByPk(req.params.id);
 
         if (!order) {
             return res.status(404).json({
@@ -349,7 +252,6 @@ router.put('/:id', orderValidation, async (req, res) => {
             description
         } = req.body;
 
-        // Update order
         await order.update({
             supplier: supplier.trim(),
             equipment_name: equipment_name.trim(),
@@ -363,24 +265,15 @@ router.put('/:id', orderValidation, async (req, res) => {
             description: description?.trim() || null
         });
 
-        console.log('✅ Order updated successfully');
-
-        // Try to fetch with associations, fallback without
-        let updatedOrder;
-        try {
-            updatedOrder = await Order.findByPk(id, {
-                include: [
-                    {
-                        model: User,
-                        as: 'creator',
-                        attributes: ['id', 'name', 'email']
-                    }
-                ]
-            });
-        } catch (associationError) {
-            console.log('Association failed, returning basic order data');
-            updatedOrder = await Order.findByPk(id);
-        }
+        const updatedOrder = await Order.findByPk(req.params.id, {
+            include: [
+                {
+                    model: User,
+                    as: 'orderCreator',
+                    attributes: ['id', 'name', 'email']
+                }
+            ]
+        });
 
         res.json({
             success: true,
@@ -389,7 +282,7 @@ router.put('/:id', orderValidation, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('💥 Error updating order:', error);
+        console.error('Error updating order:', error);
 
         if (error.name === 'SequelizeValidationError') {
             return res.status(400).json({
@@ -405,19 +298,15 @@ router.put('/:id', orderValidation, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to update order',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+            error: error.message
         });
     }
 });
 
-// DELETE /api/orders/:id - Delete order (Admin only)
+// DELETE order
 router.delete('/:id', async (req, res) => {
     try {
-        const { id } = req.params;
-
-        console.log(`🗑️ Deleting order with ID: ${id} by admin:`, req.user.email);
-
-        const order = await Order.findByPk(id);
+        const order = await Order.findByPk(req.params.id);
 
         if (!order) {
             return res.status(404).json({
@@ -428,19 +317,17 @@ router.delete('/:id', async (req, res) => {
 
         await order.destroy();
 
-        console.log('✅ Order deleted successfully');
-
         res.json({
             success: true,
             message: 'Order deleted successfully'
         });
 
     } catch (error) {
-        console.error('💥 Error deleting order:', error);
+        console.error('Error deleting order:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to delete order',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+            error: error.message
         });
     }
 });
