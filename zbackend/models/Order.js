@@ -46,14 +46,14 @@ const Order = sequelize.define('Order', {
         }
     },
     status: {
-        type: DataTypes.ENUM('pending', 'approved', 'ordered', 'delivered', 'cancelled'),
+        type: DataTypes.ENUM('Pending', 'Approved', 'Ordered', 'Delivered', 'Cancelled'),
         allowNull: false,
-        defaultValue: 'pending'
+        defaultValue: 'Pending'
     },
     priority: {
-        type: DataTypes.ENUM('low', 'medium', 'high'),
+        type: DataTypes.ENUM('Low', 'Medium', 'High'),
         allowNull: false,
-        defaultValue: 'medium'
+        defaultValue: 'Medium'
     },
     order_date: {
         type: DataTypes.DATEONLY,

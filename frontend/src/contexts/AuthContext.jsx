@@ -1,6 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -166,6 +165,13 @@ export const AuthProvider = ({ children }) => {
         return fetch(url, { ...options, ...defaultOptions });
     };
 
+    // Function to update user data in context and localStorage
+    const updateUser = (updatedUserData) => {
+        const newUser = { ...user, ...updatedUserData };
+        setUser(newUser);
+        localStorage.setItem('user', JSON.stringify(newUser));
+    };
+
     const value = {
         user,
         token,
@@ -174,7 +180,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         loading,
         isAuthenticated: !!token && !!user,
-        makeAuthenticatedRequest
+        makeAuthenticatedRequest,
+        updateUser
     };
 
     return (

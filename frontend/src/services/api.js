@@ -131,7 +131,7 @@ export const usersAPI = {
     // Get current user profile
     getProfile: async () => {
         const response = await apiCall('/users/profile');
-        return response.user || response; // Handle both formats
+        return response; // Backend returns { success: true, data: user }
     },
 
     // Update current user profile
@@ -342,6 +342,10 @@ export const reportsAPI = {
     },
     getReportById: (id) => apiCall(`/reports/${id}`),
     generateReport: (reportData) => apiCall('/reports/generate', {
+        method: 'POST',
+        body: JSON.stringify(reportData),
+    }),
+    generateLabReport: (reportData) => apiCall('/reports/generate-lab-report', {
         method: 'POST',
         body: JSON.stringify(reportData),
     }),

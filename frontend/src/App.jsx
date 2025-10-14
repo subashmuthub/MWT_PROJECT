@@ -1,8 +1,7 @@
 // src/App.jsx - UPDATED VERSION
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
-import { useAuth } from './hooks/useAuth'
-import { ProtectedRoute } from './components/common/ProtectedRoute'
+import { ProtectedRoute, AuthRedirect } from './components/common/ProtectedRoute'
 import ErrorBoundary from './components/ErrorBoundary'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -13,44 +12,19 @@ import EquipmentDetails from './pages/EquipmentDetails'
 import BookingSystem from './pages/BookingSystem'
 import OrderManagement from './pages/OrderManagement'
 import UserManagement from './pages/UserManagement'
-import ReportsAnalytics from './pages/ReportsAnalytics'
+import ReportsAnalytics from './pages/EnhancedReportsAnalyticsNew'
 import MaintenanceSchedule from './pages/MaintenanceSchedule'
 import Notifications from './pages/Notifications'
 import LabManagement from './components/LabManagement'
 import Incidents from './pages/Incidents'
 import Calendar from './pages/Calendar'
 import Settings from './pages/Settings'
-import Profile from './pages/Profile'
+import NewProfile from './pages/NewProfile'
 import Training from './pages/Training'
 import './index.css'
 import Chatbot from './components/Chatbot'
 
 function AppContent() {
-  // Component to handle automatic redirects
-  const AuthRedirect = ({ children }) => {
-    const { user, loading } = useAuth();
-
-    if (loading) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
-            </div>
-            <p className="text-gray-600 mt-4 font-medium">Loading...</p>
-          </div>
-        </div>
-      );
-    }
-
-    // If user is authenticated and tries to access login/register, redirect to dashboard
-    if (user && (window.location.pathname === '/login' || window.location.pathname === '/register')) {
-      return <Navigate to="/dashboard" replace />;
-    }
-
-    return children;
-  };
   return (
     <div className="min-h-screen bg-gray-50">
       <Routes>
@@ -124,7 +98,7 @@ function AppContent() {
         <Route
           path="/orders"
           element={
-            <ProtectedRoute requiredRole={['admin', 'lab_assistant']}>
+            <ProtectedRoute>
               <OrderManagement />
             </ProtectedRoute>
           }
@@ -196,7 +170,7 @@ function AppContent() {
           path="/profile"
           element={
             <ProtectedRoute>
-              <Profile />
+              <NewProfile />
             </ProtectedRoute>
           }
         />

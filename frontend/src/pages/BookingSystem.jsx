@@ -207,6 +207,9 @@ function BookingSystem() {
 
     // Fetch labs, equipment and bookings
     useEffect(() => {
+        // Set document title
+        document.title = 'Bookings | NEC LabMS'
+        
         if (!token) {
             navigate('/login')
             return
@@ -247,12 +250,11 @@ function BookingSystem() {
                     console.error('Failed to fetch equipment:', equipmentResponse.status)
                 }
 
-                // Fetch current user's bookings (current and upcoming only)
-                const now = new Date().toISOString()
-                const bookingsResponse = await fetch(`${API_BASE_URL}/bookings?my_bookings=true&start_date=${now.split('T')[0]}`, { headers })
+                // Fetch current user's bookings (remove date filter to test)
+                const bookingsResponse = await fetch(`${API_BASE_URL}/bookings?my_bookings=true`, { headers })
                 if (bookingsResponse.ok) {
                     const bookingsData = await bookingsResponse.json()
-                    console.log('Bookings data received:', bookingsData)
+                    console.log('📅 Bookings loaded:', bookingsData.data?.bookings?.length || 0, 'bookings')
                     setBookings(bookingsData.data?.bookings || [])
                 } else {
                     console.error('Failed to fetch bookings:', bookingsResponse.status)
@@ -515,11 +517,15 @@ function BookingSystem() {
                 <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
                     {!sidebarCollapsed && (
                         <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">L</span>
+                            <div className="w-8 h-8 rounded-lg overflow-hidden">
+                                <img 
+                                    src="/nec-logo.png" 
+                                    alt="NEC Logo" 
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
                             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                LabMS
+                                NEC LabMS
                             </h1>
                         </div>
                     )}

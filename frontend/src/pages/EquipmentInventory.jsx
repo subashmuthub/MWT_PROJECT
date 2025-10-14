@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useNavigate, useLocation } from 'react-router-dom'
+import ExcelImportModal from '../components/ExcelImportModal'
 
 // Enhanced Add Equipment Modal Component with Dynamic Fields
 function AddEquipmentModal({ isOpen, onClose, onEquipmentAdded, labs }) {
@@ -951,6 +952,7 @@ export default function EquipmentInventory() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
+    const [showImportModal, setShowImportModal] = useState(false)
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
     const [showNotifications, setShowNotifications] = useState(false)
@@ -1118,6 +1120,9 @@ export default function EquipmentInventory() {
     }, [])
 
     useEffect(() => {
+        // Set document title
+        document.title = 'Equipment | NEC LabMS'
+        
         const fetchData = async () => {
             if (!token) {
                 navigate('/login')
@@ -1332,11 +1337,15 @@ export default function EquipmentInventory() {
                 <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
                     {!sidebarCollapsed && (
                         <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">L</span>
+                            <div className="w-8 h-8 bg-white rounded-lg overflow-hidden p-1">
+                                <img 
+                                    src="/nec-logo.png" 
+                                    alt="NEC Logo" 
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
                             <h1 className="text-xl font-bold text-white">
-                                LabMS
+                                NEC LabMS
                             </h1>
                         </div>
                     )}
@@ -1504,15 +1513,26 @@ export default function EquipmentInventory() {
                                 </p>
                             </div>
                             {user?.role === 'admin' && (
-                                <button
-                                    onClick={() => setShowAddForm(true)}
-                                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center space-x-2 font-medium"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                    <span>Add Equipment</span>
-                                </button>
+                                <div className="flex items-center space-x-3">
+                                    <button
+                                        onClick={() => setShowImportModal(true)}
+                                        className="px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center space-x-2 font-medium"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
+                                        </svg>
+                                        <span>Import Excel</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowAddForm(true)}
+                                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center space-x-2 font-medium"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                        <span>Add Equipment</span>
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -1798,6 +1818,21 @@ export default function EquipmentInventory() {
                     onClose={() => setShowAddForm(false)}
                     onEquipmentAdded={handleEquipmentAdded}
                     labs={labs}
+                />
+            )}
+
+            {/* Excel Import Modal */}
+            {user?.role === 'admin' && (
+                <ExcelImportModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    onImportComplete={() => {
+                        setShowImportModal(false)
+                        // Refresh equipment list after import by triggering filters change
+                        setFilters(prev => ({ ...prev }))
+                    }}
+                    labs={labs}
+                    token={token}
                 />
             )}
         </div>

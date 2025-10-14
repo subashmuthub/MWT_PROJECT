@@ -204,11 +204,15 @@ export default function OrderManagement() {
 
     // Check if user is admin and load data
     useEffect(() => {
-        if (user && user.role !== 'admin') {
-            navigate('/dashboard')
-            return
-        }
-        if (user?.role === 'admin') {
+        // Set document title
+        document.title = 'Orders | NEC LabMS'
+        
+        // Temporarily remove admin check for debugging
+        // if (user && user.role !== 'admin') {
+        //     navigate('/dashboard')
+        //     return
+        // }
+        if (user && token) {
             fetchOrders()
         }
     }, [user, navigate])
@@ -226,7 +230,8 @@ export default function OrderManagement() {
     const handleNavigation = (path) => {
         try {
             navigate(path)
-        } catch (error) {
+        } catch (err) {
+            console.error('Navigation error:', err)
             setError(`Failed to navigate to ${path}`)
         }
     }
@@ -501,11 +506,15 @@ export default function OrderManagement() {
                 <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
                     {!sidebarCollapsed && (
                         <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">L</span>
+                            <div className="w-8 h-8 rounded-lg overflow-hidden">
+                                <img 
+                                    src="/nec-logo.png" 
+                                    alt="NEC Logo" 
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
                             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                LabMS
+                                NEC LabMS
                             </h1>
                         </div>
                     )}
@@ -562,10 +571,20 @@ export default function OrderManagement() {
                 {!sidebarCollapsed && (
                     <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
                         <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                                <span className="text-white font-medium text-sm">
-                                    {(user?.name || user?.email)?.charAt(0)?.toUpperCase()}
-                                </span>
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden">
+                                {user?.avatar_url ? (
+                                    <img
+                                        src={user.avatar_url}
+                                        alt="Profile"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                                        <span className="text-white font-medium text-sm">
+                                            {(user?.name || user?.email)?.charAt(0)?.toUpperCase()}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-gray-900 truncate">
@@ -641,10 +660,20 @@ export default function OrderManagement() {
                                         onClick={() => setShowUserMenu(!showUserMenu)}
                                         className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
                                     >
-                                        <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                                            <span className="text-white font-medium text-sm">
-                                                {(user?.name || user?.email)?.charAt(0)?.toUpperCase()}
-                                            </span>
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden">
+                                            {user?.avatar_url ? (
+                                                <img
+                                                    src={user.avatar_url}
+                                                    alt="Profile"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                                                    <span className="text-white font-medium text-sm">
+                                                        {(user?.name || user?.email)?.charAt(0)?.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
-const { authenticateToken, authorize } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const { Booking, Equipment, User, Lab } = require('../models');
 const { sequelize } = require('../config/database');
 
@@ -125,7 +125,15 @@ router.get('/stats', async (req, res) => {
             where: {
                 ...whereClause,
                 status: { [Op.in]: ['pending', 'confirmed'] },
-                start_time: { [Op.gte]: now }
+                [Op.or]: [
+                    // Future bookings (not started yet)
+                    { start_time: { [Op.gte]: now } },
+                    // Currently running bookings (started but not ended)
+                    {
+                        start_time: { [Op.lte]: now },
+                        end_time: { [Op.gte]: now }
+                    }
+                ]
             }
         });
 
@@ -533,6 +541,75 @@ router.put('/:id', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to update booking',
+            error: error.message
+        });
+    }
+});
+
+// PATCH booking status (for quick status updates)
+router.patch('/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        const booking = await Booking.findByPk(req.params.id);
+
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: 'Booking not found'
+            });
+        }
+
+        // Allow students to cancel their own bookings, admins can change any status
+        if (booking.user_id !== req.user.userId && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to update this booking'
+            });
+        }
+
+        // Students can only cancel their bookings
+        if (req.user.role === 'student' && status !== 'cancelled') {
+            return res.status(403).json({
+                success: false,
+                message: 'Students can only cancel their bookings'
+            });
+        }
+
+        // Validate status transitions
+        const validTransitions = {
+            'pending': ['confirmed', 'cancelled'],
+            'confirmed': ['completed', 'cancelled'],
+            'cancelled': [],
+            'completed': []
+        };
+
+        if (!validTransitions[booking.status]?.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot change status from ${booking.status} to ${status}`
+            });
+        }
+
+        await booking.update({ status });
+
+        const updatedBooking = await Booking.findByPk(req.params.id, {
+            include: [
+                { model: Equipment, as: 'equipment', required: false },
+                { model: Lab, as: 'lab', required: false },
+                { model: User, as: 'user', required: false }
+            ]
+        });
+
+        res.json({
+            success: true,
+            data: { booking: updatedBooking },
+            message: `Booking ${status} successfully`
+        });
+    } catch (error) {
+        console.error('💥 Error updating booking status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update booking status',
             error: error.message
         });
     }

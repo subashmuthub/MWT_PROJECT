@@ -446,4 +446,133 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// POST bulk import equipment
+router.post('/bulk-import', async (req, res) => {
+    try {
+        const { equipmentData } = req.body;
+
+        if (!Array.isArray(equipmentData) || equipmentData.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Equipment data array is required'
+            });
+        }
+
+        if (equipmentData.length > 1000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot import more than 1000 items at once'
+            });
+        }
+
+        const results = {
+            success: 0,
+            failed: 0,
+            errors: []
+        };
+
+        // Validate and import each equipment item
+        for (let i = 0; i < equipmentData.length; i++) {
+            const data = equipmentData[i];
+            const rowNumber = i + 1;
+
+            try {
+                // Validate required fields
+                if (!data.name || !data.serial_number || !data.category || !data.lab_id) {
+                    results.failed++;
+                    results.errors.push(`Row ${rowNumber}: Missing required fields (name, serial_number, category, lab_id)`);
+                    continue;
+                }
+
+                // Check if lab exists
+                const lab = await Lab.findByPk(data.lab_id);
+                if (!lab) {
+                    results.failed++;
+                    results.errors.push(`Row ${rowNumber}: Lab with ID ${data.lab_id} not found`);
+                    continue;
+                }
+
+                // Check for duplicate serial number
+                const existingEquipment = await Equipment.findOne({
+                    where: { 
+                        serial_number: data.serial_number,
+                        is_active: true 
+                    }
+                });
+
+                if (existingEquipment) {
+                    results.failed++;
+                    results.errors.push(`Row ${rowNumber}: Equipment with serial number ${data.serial_number} already exists`);
+                    continue;
+                }
+
+                // Prepare equipment data
+                const equipmentData = {
+                    name: data.name.trim(),
+                    description: data.description?.trim() || null,
+                    serial_number: data.serial_number.trim(),
+                    model: data.model?.trim() || null,
+                    manufacturer: data.manufacturer?.trim() || null,
+                    category: data.category.trim(),
+                    lab_id: parseInt(data.lab_id),
+                    location_details: data.location_details?.trim() || null,
+                    status: data.status || 'available',
+                    condition_status: data.condition_status || 'good',
+                    purchase_price: data.purchase_price ? parseFloat(data.purchase_price) : null,
+                    current_value: data.current_value ? parseFloat(data.current_value) : null,
+                    purchase_date: data.purchase_date ? new Date(data.purchase_date) : null,
+                    warranty_expiry: data.warranty_expiry ? new Date(data.warranty_expiry) : null,
+                    processor: data.processor?.trim() || null,
+                    ram: data.ram?.trim() || null,
+                    storage: data.storage?.trim() || null,
+                    graphics_card: data.graphics_card?.trim() || null,
+                    operating_system: data.operating_system?.trim() || null,
+                    is_active: true,
+                    created_by: req.user.userId,
+                    updated_by: req.user.userId
+                };
+
+                // Validate status values
+                const validStatuses = ['available', 'in_use', 'maintenance', 'retired'];
+                if (!validStatuses.includes(equipmentData.status)) {
+                    results.failed++;
+                    results.errors.push(`Row ${rowNumber}: Invalid status '${equipmentData.status}'. Must be one of: ${validStatuses.join(', ')}`);
+                    continue;
+                }
+
+                // Validate condition status
+                const validConditions = ['excellent', 'good', 'fair', 'poor', 'damaged'];
+                if (!validConditions.includes(equipmentData.condition_status)) {
+                    results.failed++;
+                    results.errors.push(`Row ${rowNumber}: Invalid condition '${equipmentData.condition_status}'. Must be one of: ${validConditions.join(', ')}`);
+                    continue;
+                }
+
+                // Create equipment
+                await Equipment.create(equipmentData);
+                results.success++;
+
+            } catch (error) {
+                console.error(`Error importing equipment row ${rowNumber}:`, error);
+                results.failed++;
+                results.errors.push(`Row ${rowNumber}: ${error.message}`);
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `Import completed. ${results.success} items imported successfully, ${results.failed} failed.`,
+            data: results
+        });
+
+    } catch (error) {
+        console.error('Error in bulk import:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to process bulk import',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

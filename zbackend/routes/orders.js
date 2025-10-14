@@ -76,7 +76,7 @@ router.get('/', async (req, res) => {
             include: [
                 {
                     model: User,
-                    as: 'orderCreator', // ✅ FIXED: Updated alias
+                    as: 'creator', // Fixed: Match association in models/index.js
                     attributes: ['id', 'name', 'email'],
                     required: false
                 }
@@ -113,7 +113,7 @@ router.get('/:id', async (req, res) => {
             include: [
                 {
                     model: User,
-                    as: 'orderCreator', // ✅ FIXED: Updated alias
+                    as: 'creator', // Fixed: Match association in models/index.js
                     attributes: ['id', 'name', 'email']
                 }
             ]
@@ -184,7 +184,7 @@ router.post('/', orderValidation, async (req, res) => {
             include: [
                 {
                     model: User,
-                    as: 'orderCreator',
+                    as: 'creator',
                     attributes: ['id', 'name', 'email']
                 }
             ]
@@ -269,7 +269,7 @@ router.put('/:id', orderValidation, async (req, res) => {
             include: [
                 {
                     model: User,
-                    as: 'orderCreator',
+                    as: 'creator',
                     attributes: ['id', 'name', 'email']
                 }
             ]

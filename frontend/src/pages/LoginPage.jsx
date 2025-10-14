@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
@@ -12,6 +12,11 @@ function LoginPage() {
     const [staySignedIn, setStaySignedIn] = useState(false)
     const { login } = useAuth()
     const navigate = useNavigate()
+
+    useEffect(() => {
+        // Set document title
+        document.title = 'Login | NEC LabMS'
+    }, [])
 
     const handleChange = (e) => {
         const { name, value } = e.target

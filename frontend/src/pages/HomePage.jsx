@@ -8,6 +8,11 @@ const HomePage = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        // Set document title
+        document.title = 'Home | NEC LabMS'
+    }, [])
     
     // Safely get user, with fallback if auth context isn't ready
     let user = null;
@@ -117,13 +122,14 @@ const HomePage = () => {
         { number: "99.9%", label: "Uptime", icon: "⚡" }
     ];
 
-    // Auto-slide effect
     useEffect(() => {
-        const timer = setInterval(() => {
+        // Auto-rotate slides
+        const interval = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
         }, 5000);
-        return () => clearInterval(timer);
-    }, []);
+
+        return () => clearInterval(interval);
+    }, [heroSlides.length]);
 
     return (
         <div className="min-h-screen bg-white">
@@ -132,9 +138,16 @@ const HomePage = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center">
-                            <div className="flex-shrink-0 flex items-center">
+                            <div className="flex-shrink-0 flex items-center space-x-3">
+                                <div className="w-10 h-10 rounded-lg overflow-hidden">
+                                    <img 
+                                        src="/nec-logo.png" 
+                                        alt="NEC Logo" 
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
                                 <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                    LabMS
+                                    NEC LabMS
                                 </div>
                             </div>
                             <div className="hidden md:block ml-10">
@@ -423,7 +436,16 @@ const HomePage = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                         <div>
-                            <h3 className="text-2xl font-bold mb-4">LabMS</h3>
+                            <div className="flex items-center space-x-3 mb-4">
+                                <div className="w-8 h-8 rounded-lg overflow-hidden">
+                                    <img 
+                                        src="/nec-logo.png" 
+                                        alt="NEC Logo" 
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                                <h3 className="text-2xl font-bold">NEC LabMS</h3>
+                            </div>
                             <p className="text-gray-400">
                                 Modern Lab Management System for Educational Institutions
                             </p>
@@ -479,35 +501,5 @@ const HomePage = () => {
         </div>
     );
 };
-
-// Add these styles to your index.css or create a separate CSS file
-const styles = `
-@keyframes fade-in-up {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.animate-fade-in-up {
-    animation: fade-in-up 0.8s ease-out forwards;
-}
-
-.animation-delay-200 {
-    animation-delay: 200ms;
-}
-
-.animation-delay-400 {
-    animation-delay: 400ms;
-}
-
-.animation-delay-600 {
-    animation-delay: 600ms;
-}
-`;
 
 export default HomePage;

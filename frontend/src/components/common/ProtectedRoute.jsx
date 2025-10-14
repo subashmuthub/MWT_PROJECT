@@ -63,7 +63,6 @@ export function ProtectedRoute({ children, requiredRole = null }) {
                             >
                                 Go Back
                             </button>
-                            {/* ✅ FIXED: Use proper navigation */}
                             <button
                                 onClick={() => window.location.href = '/dashboard'}
                                 className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -75,6 +74,32 @@ export function ProtectedRoute({ children, requiredRole = null }) {
                 </div>
             )
         }
+    }
+
+    return children
+}
+
+// Component to redirect authenticated users away from login/register pages
+export function AuthRedirect({ children }) {
+    const { user, loading } = useAuth()
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <div className="relative">
+                        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
+                        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
+                    </div>
+                    <p className="text-gray-600 mt-4 font-medium">Loading...</p>
+                </div>
+            </div>
+        )
+    }
+
+    // If user is authenticated and tries to access login/register, redirect to dashboard
+    if (user) {
+        return <Navigate to="/dashboard" replace />
     }
 
     return children

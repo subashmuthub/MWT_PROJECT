@@ -51,6 +51,14 @@ const User = sequelize.define('User', {
         type: DataTypes.STRING(20),
         allowNull: true
     },
+    bio: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    position: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+    },
     is_active: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
