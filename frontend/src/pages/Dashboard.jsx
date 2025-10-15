@@ -12,6 +12,7 @@ export default function Dashboard() {
         totalOrders: 0,
         pendingOrders: 0,
         totalUsers: 0,
+        activeUsers: 0,
         totalIncidents: 0,
         completedTrainings: 0,
         pendingMaintenances: 0
@@ -76,7 +77,7 @@ export default function Dashboard() {
             ),
             path: '/lab-management',
             show: true,
-            badge: stats.totalLabs
+            badge: stats.totalLabs > 0 ? stats.totalLabs : null
         },
         {
             id: 'equipment',
@@ -88,7 +89,7 @@ export default function Dashboard() {
             ),
             path: '/equipment',
             show: true,
-            badge: stats.totalEquipment
+            badge: stats.totalEquipment > 0 ? stats.totalEquipment : null
         },
         {
             id: 'bookings',
@@ -100,7 +101,7 @@ export default function Dashboard() {
             ),
             path: '/bookings',
             show: true,
-            badge: stats.activeBookings
+            badge: stats.activeBookings > 0 ? stats.activeBookings : null
         },
         {
             id: 'calendar',
@@ -124,7 +125,7 @@ export default function Dashboard() {
             ),
             path: '/training',
             show: true,
-            badge: stats.completedTrainings
+            badge: stats.completedTrainings > 0 ? stats.completedTrainings : null
         },
         {
             id: 'incidents',
@@ -162,7 +163,7 @@ export default function Dashboard() {
             ),
             path: '/users',
             show: user?.role === 'admin',
-            badge: stats.totalUsers
+            badge: stats.totalUsers > 0 ? stats.totalUsers : null
         },
         {
             id: 'reports',
@@ -349,6 +350,7 @@ export default function Dashboard() {
                 const userData = await responses[4].value.json()
                 if (userData.success) {
                     newStats.totalUsers = userData.data.total || 0
+                    newStats.activeUsers = userData.data.active || 0
                 }
             }
 
@@ -1074,6 +1076,24 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Total Users Card - Show for admins */}
+                        {user?.role === 'admin' && (
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-600">Total Users</p>
+                                        <p className="text-3xl font-bold text-gray-900">{stats.totalUsers}</p>
+                                        <p className="text-xs text-gray-500">Active: {stats.activeUsers || 0}</p>
+                                    </div>
+                                    <div className="p-3 bg-indigo-100 rounded-full">
+                                        <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {stats.totalIncidents > 0 && (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

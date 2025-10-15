@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { Op } = require('sequelize');
+const { createNotification } = require('../utils/notificationService');
+const { authenticateToken } = require('../middleware/auth');
 
 // Import models with error handling
 let Maintenance, Equipment, User;
@@ -21,6 +23,10 @@ try {
     }
 }
 
+// Apply authentication to all maintenance routes except test
+router.use('/test', (req, res, next) => next()); // Skip auth for test endpoint
+router.use(authenticateToken);
+
 // Test route
 router.get('/test', (req, res) => {
     console.log('🔧 Maintenance test endpoint hit');
@@ -39,6 +45,43 @@ router.get('/test', (req, res) => {
             overdue: 'GET /api/maintenance/overdue/list'
         }
     });
+});
+
+// GET maintenance statistics (for dashboard)
+router.get('/stats', async (req, res) => {
+    try {
+        console.log('🔧 Fetching maintenance statistics for dashboard');
+
+        const [scheduled, in_progress, completed, cancelled, overdue] = await Promise.all([
+            Maintenance.count({ where: { status: 'scheduled' } }),
+            Maintenance.count({ where: { status: 'in_progress' } }),
+            Maintenance.count({ where: { status: 'completed' } }),
+            Maintenance.count({ where: { status: 'cancelled' } }),
+            Maintenance.count({ where: { status: 'overdue' } })
+        ]);
+
+        console.log('✅ Maintenance statistics calculated');
+
+        res.json({
+            success: true,
+            data: {
+                pending: scheduled + in_progress,
+                scheduled,
+                inProgress: in_progress,
+                completed,
+                cancelled,
+                overdue,
+                total: scheduled + in_progress + completed + cancelled + overdue
+            }
+        });
+    } catch (error) {
+        console.error('💥 Error fetching maintenance stats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch maintenance statistics',
+            error: error.message
+        });
+    }
 });
 
 // GET maintenance statistics
@@ -350,6 +393,27 @@ router.post('/', async (req, res) => {
 
         console.log('✅ Maintenance record created successfully:', newMaintenance.id);
 
+        // Create notification for maintenance record
+        try {
+            await createNotification({
+                user_id: req.user.userId,
+                type: 'maintenance',
+                title: 'Maintenance Scheduled',
+                message: `Maintenance for ${maintenanceData.equipment_name} has been scheduled for ${new Date(date).toLocaleDateString()}.`,
+                metadata: {
+                    maintenance_id: newMaintenance.id,
+                    equipment_name: maintenanceData.equipment_name,
+                    maintenance_type: type,
+                    scheduled_date: date,
+                    priority: priority,
+                    technician: technician || 'Unassigned'
+                }
+            });
+            console.log('📧 Maintenance notification created for:', maintenanceData.equipment_name);
+        } catch (notifError) {
+            console.error('⚠️ Failed to create maintenance notification:', notifError.message);
+        }
+
         // Try to fetch with associations, fallback without
         let maintenanceWithAssociations;
         try {
@@ -414,6 +478,49 @@ router.put('/:id', async (req, res) => {
         }
 
         await maintenance.update(req.body);
+
+        // Create notification for status changes
+        if (req.body.status && req.body.status !== maintenance.status) {
+            try {
+                let notificationTitle = '';
+                let notificationMessage = '';
+
+                switch (req.body.status) {
+                    case 'in_progress':
+                        notificationTitle = 'Maintenance Started';
+                        notificationMessage = `Maintenance for ${maintenance.equipment_name} has been started.`;
+                        break;
+                    case 'completed':
+                        notificationTitle = 'Maintenance Completed';
+                        notificationMessage = `Maintenance for ${maintenance.equipment_name} has been completed.`;
+                        break;
+                    case 'cancelled':
+                        notificationTitle = 'Maintenance Cancelled';
+                        notificationMessage = `Maintenance for ${maintenance.equipment_name} has been cancelled.`;
+                        break;
+                    default:
+                        notificationTitle = 'Maintenance Status Updated';
+                        notificationMessage = `Maintenance for ${maintenance.equipment_name} status has been updated to ${req.body.status}.`;
+                }
+
+                await createNotification({
+                    user_id: req.user.userId,
+                    type: 'maintenance',
+                    title: notificationTitle,
+                    message: notificationMessage,
+                    metadata: {
+                        maintenance_id: maintenance.id,
+                        equipment_name: maintenance.equipment_name,
+                        old_status: maintenance.status,
+                        new_status: req.body.status,
+                        maintenance_type: maintenance.maintenance_type
+                    }
+                });
+                console.log('📧 Maintenance status notification created for:', maintenance.equipment_name);
+            } catch (notifError) {
+                console.error('⚠️ Failed to create maintenance status notification:', notifError.message);
+            }
+        }
 
         console.log('✅ Maintenance record updated successfully');
 

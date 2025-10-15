@@ -38,23 +38,35 @@ router.get('/stats', authenticateToken, requireTeacherOrAdmin, async (req, res) 
     try {
         console.log('📊 Fetching user stats for:', req.user.email);
 
-        const [totalUsers, students, teachers, admins] = await Promise.all([
+        const [totalUsers, activeUsers, students, teachers, admins, labTechnicians, labAssistants] = await Promise.all([
             User.count(),
+            User.count({ where: { is_active: true } }),
             User.count({ where: { role: 'student' } }),
             User.count({ where: { role: 'teacher' } }),
-            User.count({ where: { role: 'admin' } })
+            User.count({ where: { role: 'admin' } }),
+            User.count({ where: { role: 'lab_technician' } }),
+            User.count({ where: { role: 'lab_assistant' } })
         ]);
 
         console.log('✅ User stats calculated');
         res.json({
-            totalUsers,
-            students,
-            teachers,
-            admins
+            success: true,
+            data: {
+                total: totalUsers,
+                active: activeUsers,
+                students,
+                teachers,
+                admins,
+                lab_technicians: labTechnicians,
+                lab_assistants: labAssistants
+            }
         });
     } catch (error) {
         console.error('💥 Error fetching user stats:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            success: false,
+            error: error.message 
+        });
     }
 });
 

@@ -393,12 +393,53 @@ export default function Training() {
         e.preventDefault()
         setError('')
 
+        // Client-side validation
+        if (!formData.title.trim()) {
+            setError('Title is required');
+            return;
+        }
+        if (!formData.description.trim()) {
+            setError('Description is required');
+            return;
+        }
+        if (formData.duration_hours < 0.5 || formData.duration_hours > 40) {
+            setError('Duration must be between 0.5 and 40 hours');
+            return;
+        }
+        if (formData.validity_months < 1 || formData.validity_months > 60) {
+            setError('Validity must be between 1 and 60 months');
+            return;
+        }
+        if (formData.max_participants < 1 || formData.max_participants > 100) {
+            setError('Max participants must be between 1 and 100');
+            return;
+        }
+
         try {
+            console.log('🎯 Submitting training form:', {
+                editingTraining: editingTraining?.id,
+                formData,
+                user: user,
+                userRole: user?.role,
+                token: token ? 'Present' : 'Missing'
+            });
+
+            // Clean form data before sending
+            const cleanFormData = {
+                ...formData,
+                equipment_id: formData.equipment_id || null,
+                instructor: formData.instructor || null,
+                materials: formData.materials || null
+            };
+
             const url = editingTraining
                 ? `${API_BASE_URL}/training/${editingTraining.id}`
                 : `${API_BASE_URL}/training`
 
             const method = editingTraining ? 'PUT' : 'POST'
+
+            console.log(`📡 Making ${method} request to:`, url);
+            console.log('📝 Sending data:', cleanFormData);
 
             const response = await fetch(url, {
                 method,
@@ -406,10 +447,14 @@ export default function Training() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(cleanFormData)
             })
 
+            console.log('📨 Response status:', response.status);
+            
             if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Success response:', result);
                 await fetchTrainings()
                 setShowModal(false)
                 setEditingTraining(null)
@@ -427,11 +472,21 @@ export default function Training() {
                 showSuccessMessage(editingTraining ? 'Training updated successfully!' : 'Training created successfully!')
             } else {
                 const result = await response.json()
-                setError(result.message || 'Failed to save training')
+                console.error('❌ Error response:', result);
+                
+                // Show detailed error message
+                if (result.errors && Array.isArray(result.errors)) {
+                    const errorMessages = result.errors.map(err => err.msg || err.message).join(', ');
+                    setError(`Validation failed: ${errorMessages}`);
+                } else if (result.message) {
+                    setError(result.message);
+                } else {
+                    setError(`Failed to save training (Status: ${response.status})`);
+                }
             }
         } catch (error) {
-            console.error('Error saving training:', error)
-            setError('Failed to save training')
+            console.error('💥 Network error:', error)
+            setError('Failed to save training - network error')
         }
     }
 

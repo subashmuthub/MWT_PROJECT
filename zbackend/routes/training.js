@@ -121,13 +121,13 @@ router.get('/', async (req, res) => {
             include: [
                 {
                     model: Equipment,
-                    as: 'trainingEquipment',
+                    as: 'equipment',
                     attributes: ['id', 'name', 'category'],
                     required: false
                 },
                 {
                     model: User,
-                    as: 'trainingCreator',
+                    as: 'creator',
                     attributes: ['id', 'name', 'email'],
                     required: false
                 }
@@ -164,13 +164,13 @@ router.get('/:id', async (req, res) => {
             include: [
                 {
                     model: Equipment,
-                    as: 'trainingEquipment',
+                    as: 'equipment',
                     attributes: ['id', 'name', 'category'],
                     required: false
                 },
                 {
                     model: User,
-                    as: 'trainingCreator',
+                    as: 'creator',
                     attributes: ['id', 'name', 'email'],
                     required: false
                 }
@@ -201,15 +201,23 @@ router.get('/:id', async (req, res) => {
 // Create new training program
 router.post('/', validateTraining, async (req, res) => {
     try {
-        if (!['admin', 'teacher'].includes(req.user.role)) {
+        console.log('🎯 Training Creation Request:', {
+            user: req.user.userId,
+            role: req.user.role,
+            body: req.body
+        });
+
+        if (!['admin', 'teacher', 'lab_technician', 'lab_assistant'].includes(req.user.role)) {
+            console.log('❌ Access denied - Role not authorized:', req.user.role);
             return res.status(403).json({
                 success: false,
-                message: 'Access denied. Only admins and teachers can create training programs.'
+                message: 'Access denied. Only admins, teachers, lab technicians, and lab assistants can create training programs.'
             });
         }
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
+            console.log('❌ Validation errors:', errors.array());
             return res.status(400).json({
                 success: false,
                 message: 'Validation failed',
@@ -222,13 +230,16 @@ router.post('/', validateTraining, async (req, res) => {
             created_by: req.user.userId
         });
 
+        console.log('📝 Cleaned training data:', trainingData);
+
         const training = await Training.create(trainingData);
+        console.log('✅ Training created successfully:', training.id);
 
         const trainingWithAssociations = await Training.findByPk(training.id, {
             include: [
                 {
                     model: Equipment,
-                    as: 'trainingEquipment',
+                    as: 'equipment',
                     attributes: ['id', 'name', 'category'],
                     required: false
                 }
@@ -241,7 +252,7 @@ router.post('/', validateTraining, async (req, res) => {
             message: 'Training program created successfully'
         });
     } catch (error) {
-        console.error('Error creating training program:', error);
+        console.error('❌ Error creating training program:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to create training program',
@@ -253,7 +264,7 @@ router.post('/', validateTraining, async (req, res) => {
 // Update training program
 router.put('/:id', validateTraining, async (req, res) => {
     try {
-        if (!['admin', 'teacher'].includes(req.user.role)) {
+        if (!['admin', 'teacher', 'lab_technician', 'lab_assistant'].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: 'Access denied'
@@ -406,7 +417,7 @@ router.get('/certifications/user/:userId?', async (req, res) => {
     try {
         const userId = req.params.userId || req.user.userId;
 
-        if (req.user.userId != userId && !['admin', 'teacher'].includes(req.user.role)) {
+        if (req.user.userId != userId && !['admin', 'teacher', 'lab_technician', 'lab_assistant'].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: 'Access denied'
@@ -442,7 +453,7 @@ router.get('/certifications/user/:userId?', async (req, res) => {
 // Get all certifications (admin/teacher only)
 router.get('/certifications/all', async (req, res) => {
     try {
-        if (!['admin', 'teacher'].includes(req.user.role)) {
+        if (!['admin', 'teacher', 'lab_technician', 'lab_assistant'].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: 'Access denied'
@@ -529,7 +540,7 @@ router.get('/certifications/:id', async (req, res) => {
             });
         }
 
-        if (certification.user_id !== req.user.userId && !['admin', 'teacher'].includes(req.user.role)) {
+        if (certification.user_id !== req.user.userId && !['admin', 'teacher', 'lab_technician', 'lab_assistant'].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: 'Access denied'
@@ -567,7 +578,7 @@ router.patch('/certifications/:id/complete', async (req, res) => {
 
         console.log(`📋 Found certification - Owner: ${certification.user_id}, Status: ${certification.status}`);
 
-        if (certification.user_id !== req.user.userId && !['admin', 'teacher'].includes(req.user.role)) {
+        if (certification.user_id !== req.user.userId && !['admin', 'teacher', 'lab_technician', 'lab_assistant'].includes(req.user.role)) {
             console.log(`❌ Access denied - User ${req.user.userId} cannot modify cert owned by ${certification.user_id}`);
             return res.status(403).json({
                 success: false,
@@ -623,10 +634,10 @@ router.patch('/certifications/:id/complete', async (req, res) => {
 // Update certification status (admin/teacher only)
 router.patch('/certifications/:id/status', async (req, res) => {
     try {
-        if (!['admin', 'teacher'].includes(req.user.role)) {
+        if (!['admin', 'teacher', 'lab_technician', 'lab_assistant'].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
-                message: 'Access denied. Only admins and teachers can update certification status.'
+                message: 'Access denied. Only admins, teachers, lab technicians, and lab assistants can update certification status.'
             });
         }
 
@@ -667,10 +678,10 @@ router.patch('/certifications/:id/status', async (req, res) => {
 // Renew certification
 router.post('/certifications/:id/renew', async (req, res) => {
     try {
-        if (!['admin', 'teacher'].includes(req.user.role)) {
+        if (!['admin', 'teacher', 'lab_technician', 'lab_assistant'].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
-                message: 'Access denied. Only admins and teachers can renew certifications.'
+                message: 'Access denied. Only admins, teachers, lab technicians, and lab assistants can renew certifications.'
             });
         }
 
