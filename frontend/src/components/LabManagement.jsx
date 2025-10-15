@@ -12,7 +12,7 @@ function AddLabModal({ isOpen, onClose, onLabAdded }) {
         name: '',
         description: '',
         location: '',
-        lab_type: 'general_lab',
+        lab_type: 'cse',
         capacity: 30,
         square_feet: '',
         lab_seats: ''
@@ -21,14 +21,12 @@ function AddLabModal({ isOpen, onClose, onLabAdded }) {
     const [error, setError] = useState('')
 
     const labTypes = [
-        { value: 'general_lab', label: 'General Lab' },
-        { value: 'computer_lab', label: 'Computer Lab' },
-        { value: 'chemistry_lab', label: 'Chemistry Lab' },
-        { value: 'physics_lab', label: 'Physics Lab' },
-        { value: 'biology_lab', label: 'Biology Lab' },
-        { value: 'electronics_lab', label: 'Electronics Lab' },
-        { value: 'mechanical_lab', label: 'Mechanical Lab' },
-        { value: 'research_lab', label: 'Research Lab' }
+        { value: 'cse', label: 'CSE' },
+        { value: 'eee', label: 'EEE' },
+        { value: 'ece', label: 'ECE' },
+        { value: 'mech', label: 'MECH' },
+        { value: 'aids', label: 'AIDS' },
+        { value: 'sh', label: 'S&H' }
     ]
 
     const handleSubmit = async (e) => {
@@ -60,7 +58,7 @@ function AddLabModal({ isOpen, onClose, onLabAdded }) {
                     name: '',
                     description: '',
                     location: '',
-                    lab_type: 'general_lab',
+                    lab_type: 'cse',
                     capacity: 30,
                     square_feet: '',
                     lab_seats: ''
@@ -131,7 +129,7 @@ function AddLabModal({ isOpen, onClose, onLabAdded }) {
 
                         <div>
                             <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Lab Type
+                                DEPT
                             </label>
                             <select
                                 name="lab_type"
@@ -259,7 +257,7 @@ function EditLabModal({ isOpen, onClose, lab, onLabUpdated }) {
         name: '',
         description: '',
         location: '',
-        lab_type: 'general_lab',
+        lab_type: 'cse',
         capacity: 30,
         square_feet: '',
         lab_seats: ''
@@ -268,14 +266,12 @@ function EditLabModal({ isOpen, onClose, lab, onLabUpdated }) {
     const [error, setError] = useState('')
 
     const labTypes = [
-        { value: 'general_lab', label: 'General Lab' },
-        { value: 'computer_lab', label: 'Computer Lab' },
-        { value: 'chemistry_lab', label: 'Chemistry Lab' },
-        { value: 'physics_lab', label: 'Physics Lab' },
-        { value: 'biology_lab', label: 'Biology Lab' },
-        { value: 'electronics_lab', label: 'Electronics Lab' },
-        { value: 'mechanical_lab', label: 'Mechanical Lab' },
-        { value: 'research_lab', label: 'Research Lab' }
+        { value: 'cse', label: 'CSE' },
+        { value: 'eee', label: 'EEE' },
+        { value: 'ece', label: 'ECE' },
+        { value: 'mech', label: 'MECH' },
+        { value: 'aids', label: 'AIDS' },
+        { value: 'sh', label: 'S&H' }
     ]
 
     useEffect(() => {
@@ -284,7 +280,7 @@ function EditLabModal({ isOpen, onClose, lab, onLabUpdated }) {
                 name: lab.name || '',
                 description: lab.description || '',
                 location: lab.location || '',
-                lab_type: lab.lab_type || 'general_lab',
+                lab_type: lab.lab_type || 'cse',
                 capacity: lab.capacity || 30,
                 square_feet: lab.square_feet || '',
                 lab_seats: lab.lab_seats || ''
@@ -377,7 +373,7 @@ function EditLabModal({ isOpen, onClose, lab, onLabUpdated }) {
 
                         <div>
                             <label className="block text-gray-700 text-sm font-bold mb-2">
-                                Lab Type
+                                DEPT
                             </label>
                             <select
                                 name="lab_type"
@@ -1003,7 +999,7 @@ export default function LabManagement() {
                             <div className="flex-1">
                                 <input
                                     type="text"
-                                    placeholder="Search labs by name, location, or description..."
+                                    placeholder="Search labs by name, Location, or description..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1015,14 +1011,12 @@ export default function LabManagement() {
                                 className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="all">All Types</option>
-                                <option value="general_lab">General Lab</option>
-                                <option value="computer_lab">Computer Lab</option>
-                                <option value="chemistry_lab">Chemistry Lab</option>
-                                <option value="physics_lab">Physics Lab</option>
-                                <option value="biology_lab">Biology Lab</option>
-                                <option value="electronics_lab">Electronics Lab</option>
-                                <option value="mechanical_lab">Mechanical Lab</option>
-                                <option value="research_lab">Research Lab</option>
+                                <option value="cse">CSE</option>
+                                <option value="eee">EEE</option>
+                                <option value="ece">ECE</option>
+                                <option value="mech">MECH</option>
+                                <option value="aids">AIDS</option>
+                                <option value="sh">S&H</option>
                             </select>
                             {user?.role === 'admin' && (
                                 <button
@@ -1088,7 +1082,7 @@ export default function LabManagement() {
                                                     Lab Name
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Type
+                                                    DEPT
                                                 </th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Location

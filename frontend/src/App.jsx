@@ -14,7 +14,7 @@ import OrderManagement from './pages/OrderManagement'
 import UserManagement from './pages/UserManagement'
 import ReportsAnalytics from './pages/EnhancedReportsAnalyticsNew'
 import MaintenanceSchedule from './pages/MaintenanceSchedule'
-import Notifications from './pages/Notifications'
+import NotificationsSimple from './pages/NotificationsSimple'
 import LabManagement from './components/LabManagement'
 import Incidents from './pages/Incidents'
 import Calendar from './pages/Calendar'
@@ -126,7 +126,7 @@ function AppContent() {
           path="/notifications"
           element={
             <ProtectedRoute>
-              <Notifications />
+              <NotificationsSimple />
             </ProtectedRoute>
           }
         />

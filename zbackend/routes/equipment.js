@@ -3,6 +3,7 @@ const router = express.Router();
 const { Equipment, Lab, User } = require('../models');
 const { Op } = require('sequelize');
 const { authenticateToken } = require('../middleware/auth');
+const { createNotification } = require('../utils/notificationService');
 
 router.use(authenticateToken);
 
@@ -280,6 +281,27 @@ router.post('/', async (req, res) => {
             ]
         });
 
+        // Create notification for equipment creation
+        try {
+            await createNotification({
+                user_id: req.user.userId,
+                type: 'equipment',
+                title: 'Equipment Added',
+                message: `New equipment "${name}" has been added to ${equipmentWithAssociations?.lab?.name || 'the lab'}.`,
+                metadata: {
+                    equipment_id: equipment.id,
+                    equipment_name: name,
+                    serial_number: serial_number,
+                    category: category,
+                    lab_id: lab_id,
+                    lab_name: equipmentWithAssociations?.lab?.name || null
+                }
+            });
+            console.log('📧 Equipment creation notification created for:', name);
+        } catch (notifError) {
+            console.error('⚠️ Failed to create equipment notification:', notifError.message);
+        }
+
         res.status(201).json({
             success: true,
             data: { equipment: equipmentWithAssociations },
@@ -384,6 +406,28 @@ router.put('/:id', async (req, res) => {
         }
 
         await equipment.update(updateData);
+
+        // Create notification if status changed
+        if (updateData.status && updateData.status !== equipment.status) {
+            try {
+                await createNotification({
+                    user_id: req.user.userId,
+                    type: 'equipment',
+                    title: 'Equipment Status Updated',
+                    message: `Equipment "${equipment.name}" status has been changed from ${equipment.status} to ${updateData.status}.`,
+                    metadata: {
+                        equipment_id: equipment.id,
+                        equipment_name: equipment.name,
+                        old_status: equipment.status,
+                        new_status: updateData.status,
+                        lab_id: equipment.lab_id
+                    }
+                });
+                console.log('📧 Equipment status notification created for:', equipment.name);
+            } catch (notifError) {
+                console.error('⚠️ Failed to create equipment status notification:', notifError.message);
+            }
+        }
 
         const updatedEquipment = await Equipment.findByPk(req.params.id, {
             include: [

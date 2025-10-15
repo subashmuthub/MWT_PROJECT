@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const { authenticateToken } = require('../middleware/auth');
 const { Booking, Equipment, User, Lab } = require('../models');
 const { sequelize } = require('../config/database');
+const { createNotification } = require('../utils/notificationService');
 
 router.use(authenticateToken);
 
@@ -408,6 +409,30 @@ router.post('/', async (req, res) => {
             ]
         });
 
+        // Create notification for the booking
+        try {
+            const resourceName = booking_type === 'lab' 
+                ? (bookingWithDetails.lab?.name || 'Lab')
+                : (bookingWithDetails.equipment?.name || 'Equipment');
+            
+            await createNotification({
+                user_id: req.user.userId,
+                type: 'booking',
+                title: `${booking_type.charAt(0).toUpperCase() + booking_type.slice(1)} Booking Created`,
+                message: `Your booking for ${resourceName} has been created successfully and is pending approval.`,
+                metadata: {
+                    booking_id: newBooking.id,
+                    booking_type: booking_type,
+                    resource_name: resourceName,
+                    start_time: finalStartTime.toISOString(),
+                    end_time: finalEndTime.toISOString()
+                }
+            });
+            console.log('📧 Notification created for booking:', newBooking.id);
+        } catch (notifError) {
+            console.error('⚠️ Failed to create notification:', notifError.message);
+        }
+
         res.status(201).json({
             success: true,
             message: 'Booking created successfully',
@@ -591,6 +616,51 @@ router.patch('/:id/status', async (req, res) => {
         }
 
         await booking.update({ status });
+
+        // Create notification for status change
+        try {
+            const resourceName = booking.booking_type === 'lab' 
+                ? (updatedBooking.lab?.name || 'Lab')
+                : (updatedBooking.equipment?.name || 'Equipment');
+
+            let notificationTitle = '';
+            let notificationMessage = '';
+
+            switch (status) {
+                case 'confirmed':
+                    notificationTitle = 'Booking Approved';
+                    notificationMessage = `Your ${booking.booking_type} booking for ${resourceName} has been approved.`;
+                    break;
+                case 'cancelled':
+                    notificationTitle = 'Booking Cancelled';
+                    notificationMessage = `Your ${booking.booking_type} booking for ${resourceName} has been cancelled.`;
+                    break;
+                case 'completed':
+                    notificationTitle = 'Booking Completed';
+                    notificationMessage = `Your ${booking.booking_type} booking for ${resourceName} has been completed.`;
+                    break;
+                default:
+                    notificationTitle = 'Booking Status Updated';
+                    notificationMessage = `Your ${booking.booking_type} booking for ${resourceName} status has been updated to ${status}.`;
+            }
+
+            await createNotification({
+                user_id: booking.user_id,
+                type: 'booking',
+                title: notificationTitle,
+                message: notificationMessage,
+                metadata: {
+                    booking_id: booking.id,
+                    booking_type: booking.booking_type,
+                    resource_name: resourceName,
+                    old_status: booking.status,
+                    new_status: status
+                }
+            });
+            console.log('📧 Status change notification created for booking:', booking.id);
+        } catch (notifError) {
+            console.error('⚠️ Failed to create status notification:', notifError.message);
+        }
 
         const updatedBooking = await Booking.findByPk(req.params.id, {
             include: [

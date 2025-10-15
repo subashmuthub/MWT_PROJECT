@@ -216,37 +216,6 @@ export default function Notifications() {
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
 
-    // Load data and setup WebSocket
-    useEffect(() => {
-        if (!token) {
-            navigate('/login')
-            return
-        }
-
-        loadNotificationsData()
-        setupWebSocketConnection()
-
-        // Cleanup WebSocket on unmount
-        return () => {
-            if (wsRef.current) {
-                wsRef.current.close()
-            }
-        }
-    }, [token, navigate])
-
-    // Auto-refresh notifications every 30 seconds
-    useEffect(() => {
-        const interval = setInterval(() => {
-            fetchNotifications()
-        }, 30000) // 30 seconds
-
-        return () => clearInterval(interval)
-    }, [])
-
-    function getUnreadCount() {
-        return notifications.filter(n => !n.read).length
-    }
-
     const loadNotificationsData = async () => {
         setLoading(true)
         setError('')
@@ -281,17 +250,42 @@ export default function Notifications() {
 
         wsRef.current.onclose = () => {
             console.log('WebSocket disconnected')
-            // Attempt to reconnect after 5 seconds
-            setTimeout(() => {
-                if (token && user?.id) {
-                    setupWebSocketConnection()
-                }
-            }, 5000)
         }
 
         wsRef.current.onerror = (error) => {
             console.error('WebSocket error:', error)
         }
+    }
+
+    // Load data and setup WebSocket
+    useEffect(() => {
+        if (!token) {
+            navigate('/login')
+            return
+        }
+
+        loadNotificationsData()
+        setupWebSocketConnection()
+
+        // Cleanup WebSocket on unmount
+        return () => {
+            if (wsRef.current) {
+                wsRef.current.close()
+            }
+        }
+    }, [token, navigate])
+
+    // Auto-refresh notifications every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchNotifications()
+        }, 30000) // 30 seconds
+
+        return () => clearInterval(interval)
+    }, [])
+
+    function getUnreadCount() {
+        return notifications.filter(n => !n.read).length
     }
 
     const handleNewNotification = (notification) => {

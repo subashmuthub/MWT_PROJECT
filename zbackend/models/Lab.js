@@ -16,9 +16,9 @@ const Lab = sequelize.define('Lab', {
         }
     },
     lab_type: {
-        type: DataTypes.ENUM('computer_lab', 'chemistry_lab', 'physics_lab', 'biology_lab', 'workshop', 'research_lab'),
+        type: DataTypes.ENUM('cse', 'eee', 'ece', 'mech', 'aids', 'sh'),
         allowNull: false,
-        defaultValue: 'computer_lab'
+        defaultValue: 'cse'
     },
     location: {
         type: DataTypes.STRING(255),
@@ -35,6 +35,21 @@ const Lab = sequelize.define('Lab', {
     description: {
         type: DataTypes.TEXT,
         allowNull: true
+    },
+    square_feet: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        validate: {
+            min: 1
+        }
+    },
+    lab_seats: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        validate: {
+            min: 1,
+            max: 500
+        }
     },
     is_active: {
         type: DataTypes.BOOLEAN,

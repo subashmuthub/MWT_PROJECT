@@ -4,6 +4,7 @@ const { authenticateToken } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const { Incident, User, Equipment } = require('../models'); // ✅ FIXED: Import from models
+const { createNotification } = require('../utils/notificationService');
 
 // Validation middleware
 const validateIncident = [
@@ -302,6 +303,27 @@ router.post('/', validateIncident, async (req, res) => {
 
         console.log('✅ Incident created successfully:', incident.id);
 
+        // Create notification for incident
+        try {
+            await createNotification({
+                user_id: userId,
+                type: 'incident',
+                title: 'Incident Reported',
+                message: `New ${incidentData.priority} priority incident "${incidentData.title}" has been reported.`,
+                metadata: {
+                    incident_id: incident.id,
+                    incident_title: incidentData.title,
+                    priority: incidentData.priority,
+                    category: incidentData.category,
+                    equipment_id: incidentData.equipment_id,
+                    location: incidentData.location
+                }
+            });
+            console.log('📧 Incident notification created for:', incidentData.title);
+        } catch (notifError) {
+            console.error('⚠️ Failed to create incident notification:', notifError.message);
+        }
+
         res.status(201).json({
             success: true,
             data: incident,
@@ -426,6 +448,48 @@ router.patch('/:id/status', async (req, res) => {
         }
 
         await incident.update(updateData);
+
+        // Create notification for status change
+        try {
+            let notificationTitle = '';
+            let notificationMessage = '';
+
+            switch (status) {
+                case 'in_progress':
+                    notificationTitle = 'Incident In Progress';
+                    notificationMessage = `Incident "${incident.title}" is now being worked on.`;
+                    break;
+                case 'resolved':
+                    notificationTitle = 'Incident Resolved';
+                    notificationMessage = `Incident "${incident.title}" has been resolved.`;
+                    break;
+                case 'closed':
+                    notificationTitle = 'Incident Closed';
+                    notificationMessage = `Incident "${incident.title}" has been closed.`;
+                    break;
+                default:
+                    notificationTitle = 'Incident Status Updated';
+                    notificationMessage = `Incident "${incident.title}" status has been updated to ${status}.`;
+            }
+
+            await createNotification({
+                user_id: incident.reported_by,
+                type: 'incident',
+                title: notificationTitle,
+                message: notificationMessage,
+                metadata: {
+                    incident_id: incident.id,
+                    incident_title: incident.title,
+                    old_status: incident.status,
+                    new_status: status,
+                    priority: incident.priority,
+                    resolution_notes: resolution_notes || null
+                }
+            });
+            console.log('📧 Incident status notification created for:', incident.title);
+        } catch (notifError) {
+            console.error('⚠️ Failed to create incident status notification:', notifError.message);
+        }
 
         res.json({
             success: true,

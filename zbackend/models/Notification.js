@@ -33,7 +33,7 @@ const Notification = sequelize.define('Notification', {
         }
     },
     type: {
-        type: DataTypes.ENUM('info', 'success', 'warning', 'error', 'booking', 'maintenance', 'incident'),
+        type: DataTypes.ENUM('info', 'success', 'warning', 'error', 'booking', 'maintenance', 'incident', 'lab', 'equipment'),
         allowNull: false,
         defaultValue: 'info'
     },
@@ -51,6 +51,11 @@ const Notification = sequelize.define('Notification', {
         },
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL'
+    },
+    metadata: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'JSON string containing additional notification data'
     }
 }, {
     tableName: 'notifications',
