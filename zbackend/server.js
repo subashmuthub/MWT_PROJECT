@@ -26,7 +26,6 @@ app.use((req, res, next) => {
 
 // Import routes
 const authRoutes = require('./routes/auth');
-const oauthRoutes = require('./routes/oauth');
 const { router: recentlyAccessedRoutes } = require('./routes/recentlyAccessed');
 const usersRoutes = require('./routes/users');
 const equipmentRoutes = require('./routes/equipment');
@@ -44,7 +43,6 @@ const activitiesRoutes = require('./routes/activities');
 // Define routes configuration
 const routes = [
     { name: 'Auth', path: '/api/auth', file: './routes/auth' },
-    { name: 'OAuth', path: '/api/auth', file: './routes/oauth' },  
     { name: 'Recent', path: '/api/recent', file: './routes/recentlyAccessed', isModule: true },
     { name: 'Users', path: '/api/users', file: './routes/users' },
     { name: 'Equipment', path: '/api/equipment', file: './routes/equipment' },
