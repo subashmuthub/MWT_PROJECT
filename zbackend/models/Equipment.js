@@ -40,7 +40,7 @@ const Equipment = sequelize.define('Equipment', {
             'computer', 'printer', 'projector', 'scanner', 'microscope',
             'centrifuge', 'spectrophotometer', 'ph_meter', 'balance',
             'incubator', 'autoclave', 'pipette', 'thermometer',
-            'glassware', 'safety_equipment', 'lab_equipment', 'network', 'other'
+            'glassware', 'safety_equipment', 'lab_equipment', 'network', 'network_equipment', 'other'
         ),
         allowNull: false
     },

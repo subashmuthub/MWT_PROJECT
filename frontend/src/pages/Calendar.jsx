@@ -973,7 +973,12 @@ export default function Calendar() {
                                 </p>
                             </div>
                             <div className="text-sm text-gray-500">
-                                Total bookings: {getFilteredBookings().length}
+                                Total bookings: {getFilteredBookings().length} | All bookings: {bookings.length}
+                                {bookings.length > 0 && (
+                                    <div className="mt-1">
+                                        Next booking: {bookings[0]?.start_time ? new Date(bookings[0].start_time).toLocaleDateString() : 'No date'}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1077,6 +1082,23 @@ export default function Calendar() {
                                 >
                                     Today
                                 </button>
+                                
+                                {bookings.length > 0 && (
+                                    <button
+                                        onClick={() => {
+                                            // Navigate to the first booking's month
+                                            const firstBooking = bookings[0]
+                                            if (firstBooking.start_time || firstBooking.date) {
+                                                const bookingDate = new Date(firstBooking.start_time || firstBooking.date)
+                                                setCurrentDate(bookingDate)
+                                            }
+                                        }}
+                                        className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                        title="Navigate to month with bookings"
+                                    >
+                                        📅 Go to Bookings
+                                    </button>
+                                )}
 
                                 <div className="flex bg-gray-100 rounded-lg p-1">
                                     {['month', 'week', 'day'].map(mode => (

@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import * as XLSX from 'xlsx'
 
-const API_BASE_URL = 'http://localhost:5000/api'
+const API_BASE_URL = '/api'
 
 export default function EnhancedReportsAnalyticsNew() {
     const { user, token } = useAuth()
@@ -429,13 +429,15 @@ export default function EnhancedReportsAnalyticsNew() {
             return incidentsList.map(incident => ({
                 'Incident ID': incident.id || 'N/A',
                 'Title': incident.title || 'Unknown Incident',
-                'Severity': incident.severity || 'Unknown',
+                'Priority': incident.priority || 'Unknown',
                 'Status': incident.status || 'Unknown',
-                'Equipment': incident.equipment?.name || 'No Equipment',
-                'Reporter': incident.reporter?.name || 'Unknown Reporter',
-                'Assignee': incident.assignee?.name || 'Not Assigned',
-                'Reported Date': incident.reported_date ? new Date(incident.reported_date).toLocaleDateString() : 'N/A',
-                'Resolved Date': incident.resolved_date ? new Date(incident.resolved_date).toLocaleDateString() : 'Not Resolved',
+                'Category': incident.category || 'Unknown',
+                'Equipment': incident.relatedEquipment?.name || incident.equipment?.name || 'No Equipment',
+                'Reporter': incident.incidentReporter?.name || incident.reporter?.name || 'Unknown Reporter',
+                'Assignee': incident.incidentAssignee?.name || incident.assignee?.name || 'Not Assigned',
+                'Location': incident.location || 'No Location',
+                'Created Date': incident.created_at ? new Date(incident.created_at).toLocaleDateString() : 'N/A',
+                'Resolved Date': incident.resolved_at ? new Date(incident.resolved_at).toLocaleDateString() : 'Not Resolved',
                 'Description': incident.description || 'No description'
             }))
         } catch (error) {
@@ -491,20 +493,29 @@ export default function EnhancedReportsAnalyticsNew() {
             if (!response.ok) throw new Error('Failed to fetch booking data')
             
             const data = await response.json()
-            const bookingList = data.data || []
+            const bookingList = data.data?.bookings || []
             
-            return bookingList.map(booking => ({
-                'Booking ID': booking.id || 'N/A',
-                'Equipment': booking.equipment?.name || 'Unknown Equipment',
-                'User': booking.user?.name || 'Unknown User',
-                'Lab': booking.lab?.name || 'No Lab',
-                'Date': booking.booking_date || 'N/A',
-                'Start Time': booking.start_time || 'N/A',
-                'End Time': booking.end_time || 'N/A',
-                'Status': booking.status || 'Unknown',
-                'Purpose': booking.purpose || 'No purpose specified',
-                'Duration Hours': booking.duration_hours || 'N/A'
-            }))
+            return bookingList.map(booking => {
+                // Calculate duration in hours
+                const startTime = new Date(booking.start_time)
+                const endTime = new Date(booking.end_time)
+                const durationMs = endTime - startTime
+                const durationHours = Math.round(durationMs / (1000 * 60 * 60) * 10) / 10 // Round to 1 decimal
+
+                return {
+                    'Booking ID': booking.id || 'N/A',
+                    'Booking Type': booking.booking_type || 'N/A',
+                    'Equipment': booking.equipment?.name || 'N/A',
+                    'User': booking.user?.name || 'Unknown User',
+                    'Lab': booking.lab?.name || 'No Lab',
+                    'Start Time': booking.start_time ? new Date(booking.start_time).toLocaleString() : 'N/A',
+                    'End Time': booking.end_time ? new Date(booking.end_time).toLocaleString() : 'N/A',
+                    'Status': booking.status || 'Unknown',
+                    'Purpose': booking.purpose || 'No purpose specified',
+                    'Duration Hours': durationHours || 'N/A',
+                    'Created Date': booking.created_at ? new Date(booking.created_at).toLocaleDateString() : 'N/A'
+                }
+            })
         } catch (error) {
             console.error('Bookings API not available:', error.message)
             return []

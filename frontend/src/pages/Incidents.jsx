@@ -938,6 +938,11 @@ export default function Incidents() {
                                             ? users.find(u => u?.id === incident?.assigned_to) 
                                             : null
 
+                                        // ✅ FIXED: Use incidentReporter if available from backend associations
+                                        const reporterName = incident?.incidentReporter?.name || 
+                                                           incident?.reporter?.name || 
+                                                           'Unknown Reporter'
+
                                         return (
                                             <tr key={incident?.id || Math.random()} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -949,12 +954,13 @@ export default function Incidents() {
                                                             {incident?.description || 'No Description'}
                                                         </div>
                                                         <div className="text-xs text-gray-400 mt-1">
-                                                            {incident?.category?.replace('_', ' ') || 'No Category'}
+                                                            {incident?.category?.replace('_', ' ') || 'No Category'} • By: {reporterName}
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {equipmentItem?.name || 'N/A'}
+                                                    {/* ✅ FIXED: Use relatedEquipment from backend associations */}
+                                                    {incident?.relatedEquipment?.name || equipmentItem?.name || 'N/A'}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(incident?.priority)}`}>
@@ -976,7 +982,8 @@ export default function Incidents() {
                                                     </select>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {assignedUser?.name || 'Unassigned'}
+                                                    {/* ✅ FIXED: Use incidentAssignee from backend associations */}
+                                                    {incident?.incidentAssignee?.name || assignedUser?.name || 'Unassigned'}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {incident?.created_at ? new Date(incident.created_at).toLocaleDateString() : 'Unknown'}

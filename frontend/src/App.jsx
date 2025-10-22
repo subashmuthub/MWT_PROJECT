@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import OAuthSuccess from './pages/OAuthSuccess'
 import Dashboard from './pages/Dashboard'
 import EquipmentInventory from './pages/EquipmentInventory'
 import EquipmentDetails from './pages/EquipmentDetails'
@@ -48,6 +49,9 @@ function AppContent() {
             </AuthRedirect>
           }
         />
+
+        {/* OAuth Success Route */}
+        <Route path="/oauth/success" element={<OAuthSuccess />} />
 
         {/* Protected Routes - require authentication */}
         <Route

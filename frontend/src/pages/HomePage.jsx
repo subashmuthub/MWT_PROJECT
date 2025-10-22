@@ -24,28 +24,31 @@ const HomePage = () => {
         // This is expected on initial load
     }
 
-    // Hero Slides Data
+    // Hero Slides Data - NEC Campus Images
     const heroSlides = [
         {
-            title: "Modern Lab Management System",
-            subtitle: "Streamline Your Laboratory Operations",
-            description: "Comprehensive solution for managing equipment, bookings, and resources",
-            image: "https://images.unsplash.com/photo-1562774053-701939374585?ixlib=rb-4.0.3",
-            gradient: "from-blue-600 to-purple-600"
+            title: "NATIONAL ENGINEERING COLLEGE",
+            subtitle: "DST-FIST Sponsored Institution",
+            description: "K.R.Nagar, Kovilpatti - An Autonomous Institution Affiliated to Anna University, Chennai",
+            image: "/Images/nec-main-building.jpg",
+            fallback: "/Images/Home.jpg",
+            gradient: "from-blue-900/70 to-purple-900/70"
         },
         {
-            title: "Smart Equipment Tracking",
-            subtitle: "Real-time Inventory Management",
-            description: "Track, maintain, and manage all your lab equipment efficiently",
-            image: "https://images.unsplash.com/photo-1582719471384-894fbb16e074?ixlib=rb-4.0.3",
-            gradient: "from-green-600 to-teal-600"
+            title: "EXCELLENCE IN PLACEMENTS",
+            subtitle: "Few of Our Prestigious Recruiters - (2025 Batch)",
+            description: "125+ Companies • 450+ Offers • 76 Students Got 8-10 LPA • 90% Consistent Placement",
+            image: "/Images/nec-achievements.png",
+            fallback: "/Images/Home.jpg",
+            gradient: "from-purple-900/80 to-blue-900/80"
         },
         {
-            title: "Seamless Booking System",
-            subtitle: "Schedule Labs & Equipment",
-            description: "Easy online booking system for students and faculty",
-            image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3",
-            gradient: "from-purple-600 to-pink-600"
+            title: "BEAUTIFUL CAMPUS",
+            subtitle: "State-of-the-art Infrastructure",
+            description: "Modern facilities with lush green environment and advanced laboratory management system",
+            image: "/Images/NEC-Front-Mobile-Slider-scaled.webp",
+            fallback: "/Images/Home.jpg",
+            gradient: "from-green-900/70 to-blue-900/70"
         }
     ];
 
@@ -242,6 +245,10 @@ const HomePage = () => {
                             src={slide.image}
                             alt={slide.title}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                                console.log('Image failed to load:', slide.image);
+                                e.target.src = slide.fallback;
+                            }}
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div className="text-center text-white px-4 max-w-4xl">
@@ -431,70 +438,107 @@ const HomePage = () => {
                 </div>
             </section>
 
-            {/* Footer */}
+            {/* Footer - NEC Style */}
             <footer id="contact" className="bg-gray-900 text-white py-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        {/* Technical Support */}
                         <div>
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-8 h-8 rounded-lg overflow-hidden">
-                                    <img 
-                                        src="/nec-logo.png" 
-                                        alt="NEC Logo" 
-                                        className="w-full h-full object-contain"
-                                    />
-                                </div>
-                                <h3 className="text-2xl font-bold">NEC LabMS</h3>
-                            </div>
-                            <p className="text-gray-400">
-                                Modern Lab Management System for Educational Institutions
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
-                            <ul className="space-y-2 text-gray-400">
-                                <li><a href="#home" className="hover:text-white transition-colors">Home</a></li>
-                                <li><a href="#about" className="hover:text-white transition-colors">About</a></li>
-                                <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                                <li><a href="#stats" className="hover:text-white transition-colors">Statistics</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="text-lg font-semibold mb-4">Resources</h4>
-                            <ul className="space-y-2 text-gray-400">
-                                <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="text-lg font-semibold mb-4">Contact Us</h4>
-                            <ul className="space-y-2 text-gray-400">
-                                <li className="flex items-center">
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            <h4 className="text-lg font-semibold mb-4 text-white">For Technical Support</h4>
+                            <div className="text-gray-300 space-y-2">
+                                <p className="font-medium">Dr. D. Venkatkumar M.E.,Ph.D</p>
+                                <p>Professor / Mechanical Engineering</p>
+                                <p className="flex items-center">
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z" />
                                     </svg>
-                                    info@labms.edu
-                                </li>
-                                <li className="flex items-center">
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    Email: dvkmech@nec.edu.in
+                                </p>
+                                <p className="flex items-center">
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                     </svg>
-                                    +91 1234567890
+                                    Ph: 9443660339
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Info Links */}
+                        <div>
+                            <h4 className="text-lg font-semibold mb-4 text-blue-400">Info</h4>
+                            <ul className="space-y-2 text-gray-300">
+                                <li>
+                                    <a href="https://nec.edu.in" className="hover:text-blue-400 transition-colors flex items-center" target="_blank" rel="noopener noreferrer">
+                                        <span className="text-blue-400 mr-1">→</span>
+                                        NEC WEBSITE
+                                    </a>
                                 </li>
-                                <li className="flex items-center">
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    College Campus, City - 123456
-                                </li>
+                                <li><a href="#about" className="hover:text-blue-400 transition-colors">About Lab Management</a></li>
+                                <li><a href="#features" className="hover:text-blue-400 transition-colors">Features</a></li>
+                                <li><a href="#" className="hover:text-blue-400 transition-colors">User Guide</a></li>
+                                <li><a href="#" className="hover:text-blue-400 transition-colors">Support</a></li>
                             </ul>
                         </div>
+
+                        {/* Contact Us */}
+                        <div>
+                            <h4 className="text-lg font-semibold mb-4 text-green-400">Contact Us</h4>
+                            <div className="text-gray-300 space-y-2">
+                                <p className="font-medium">National Engineering College, K.R. Nagar,</p>
+                                <p>Kovilpatti - 628503. Thoothukudi District,</p>
+                                <p>Tamilnadu</p>
+                                <p className="flex items-center mt-3">
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                    Phone : 04632 – 222 502 93859 76674,
+                                </p>
+                                <p className="ml-6">93859 76684</p>
+                                <p className="flex items-center">
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    Email : principal@nec.edu.in
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Follow Us */}
+                        <div>
+                            <h4 className="text-lg font-semibold mb-4 text-purple-400">Follow Us</h4>
+                            <div className="flex space-x-3 mb-4">
+                                {/* Twitter */}
+                                <a href="#" className="bg-blue-500 hover:bg-blue-600 p-2 rounded transition-colors">
+                                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
+                                    </svg>
+                                </a>
+                                
+                                {/* Google+ */}
+                                <a href="#" className="bg-red-500 hover:bg-red-600 p-2 rounded transition-colors">
+                                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12.017 14.089v-2.299h9.348c.118.718.175 1.548.175 2.479 0 2.209-.553 4.925-2.326 6.698-1.652 1.652-3.76 2.48-7.197 2.48C5.849 23.447 0 18.693 0 12.525 0 6.357 5.849 1.603 12.017 1.603c3.269 0 5.625 1.117 7.396 2.561l-2.244 2.244c-.631-.63-1.724-1.368-3.152-1.368-2.720 0-4.925 2.256-4.925 5.040 0 2.784 2.205 5.040 4.925 5.040 1.749 0 2.73-.632 3.366-1.367.51-.590.837-1.347.969-2.199h-4.335z"/>
+                                    </svg>
+                                </a>
+                                
+                                {/* Facebook */}
+                                <a href="#" className="bg-blue-600 hover:bg-blue-700 p-2 rounded transition-colors">
+                                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                    </svg>
+                                </a>
+                            </div>
+                            <div className="space-y-2 text-sm text-gray-400">
+                                <p>Stay connected with us for updates</p>
+                                <p>and latest announcements</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-                        <p>&copy; 2024 Lab Management System. All rights reserved.</p>
+                    
+                    {/* Bottom Copyright */}
+                    <div className="border-t border-gray-700 mt-8 pt-6 text-center">
+                        <p className="text-blue-400 font-medium">Powered by NEC LMS</p>
+                        <p className="text-gray-400 text-sm mt-1">&copy; 2024 National Engineering College Lab Management System. All rights reserved.</p>
                     </div>
                 </div>
             </footer>

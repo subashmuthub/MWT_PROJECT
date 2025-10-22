@@ -72,12 +72,12 @@ router.get('/recent', authenticateToken, async (req, res) => {
             include: [
                 {
                     model: User,
-                    as: 'reporter',
+                    as: 'incidentReporter',  // ✅ FIXED: Use correct association alias
                     attributes: ['name', 'email']
                 },
                 {
                     model: Equipment,
-                    as: 'equipment',
+                    as: 'relatedEquipment',  // ✅ FIXED: Use correct association alias
                     attributes: ['name']
                 }
             ],
@@ -90,15 +90,15 @@ router.get('/recent', authenticateToken, async (req, res) => {
                 id: `incident_${incident.id}`,
                 type: 'incident',
                 description: `Incident reported: ${incident.title}`,
-                user_name: incident.reporter?.name || 'Unknown User',
-                user_email: incident.reporter?.email,
+                user_name: incident.incidentReporter?.name || 'Unknown User',  // ✅ FIXED
+                user_email: incident.incidentReporter?.email,  // ✅ FIXED
                 created_at: incident.created_at,
                 details: {
                     incident_id: incident.id,
                     title: incident.title,
-                    severity: incident.severity,
+                    priority: incident.priority,  // ✅ FIXED: Use priority instead of severity
                     status: incident.status,
-                    equipment: incident.equipment?.name
+                    equipment: incident.relatedEquipment?.name  // ✅ FIXED
                 }
             });
         });
@@ -248,8 +248,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
             case 'incident':
                 const incident = await Incident.findByPk(id, {
                     include: [
-                        { model: User, as: 'reporter', attributes: ['name', 'email'] },
-                        { model: Equipment, as: 'equipment', attributes: ['name'] }
+                        { model: User, as: 'incidentReporter', attributes: ['name', 'email'] },  // ✅ FIXED
+                        { model: Equipment, as: 'relatedEquipment', attributes: ['name'] }  // ✅ FIXED
                     ]
                 });
                 if (incident) {
@@ -257,7 +257,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
                         id: activityId,
                         type: 'incident',
                         description: `Incident: ${incident.title}`,
-                        user_name: incident.reporter?.name || 'Unknown User',
+                        user_name: incident.incidentReporter?.name || 'Unknown User',  // ✅ FIXED
                         created_at: incident.created_at,
                         details: incident
                     };

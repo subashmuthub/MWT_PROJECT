@@ -20,12 +20,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Request logging middleware
 app.use((req, res, next) => {
-    console.log(`📡 ${req.method} ${req.path}`);
+    console.log(`📡 ${req.method} ${req.path} - Body:`, JSON.stringify(req.body, null, 2));
     next();
 });
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const enhancedAuthRoutes = require('./routes/enhancedAuth');
 const { router: recentlyAccessedRoutes } = require('./routes/recentlyAccessed');
 const usersRoutes = require('./routes/users');
 const equipmentRoutes = require('./routes/equipment');
@@ -42,7 +43,7 @@ const activitiesRoutes = require('./routes/activities');
 
 // Define routes configuration
 const routes = [
-    { name: 'Auth', path: '/api/auth', file: './routes/auth' },
+    { name: 'Enhanced Auth', path: '/api/auth', file: './routes/enhancedAuth' },
     { name: 'Recent', path: '/api/recent', file: './routes/recentlyAccessed', isModule: true },
     { name: 'Users', path: '/api/users', file: './routes/users' },
     { name: 'Equipment', path: '/api/equipment', file: './routes/equipment' },

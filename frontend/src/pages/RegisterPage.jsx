@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 function RegisterPage() {
+    // Email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -10,17 +13,31 @@ function RegisterPage() {
         confirmPassword: '',
         role: 'student'
     })
+    const [otpData, setOtpData] = useState({
+        otp: '',
+        isOtpSent: false,
+        isOtpVerified: false,
+        otpLoading: false,
+        otpCountdown: 0
+    })
     const [errors, setErrors] = useState({})
     const [loading, setLoading] = useState(false)
-    const { register } = useAuth()
+    const { registerWithOTP, sendOTP, verifyOTP } = useAuth()
     const navigate = useNavigate()
 
     const handleChange = (e) => {
         const { name, value } = e.target
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }))
+        if (name === 'otp') {
+            setOtpData(prev => ({
+                ...prev,
+                [name]: value
+            }))
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }))
+        }
         // Clear error for this field when user starts typing
         if (errors[name]) {
             setErrors(prev => ({
@@ -42,8 +59,7 @@ function RegisterPage() {
             newErrors.name = 'Name must not exceed 100 characters'
         }
 
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        // Email validation - accept any valid email address
         if (!formData.email) {
             newErrors.email = 'Email is required'
         } else if (!emailRegex.test(formData.email)) {
@@ -74,6 +90,84 @@ function RegisterPage() {
         return Object.keys(newErrors).length === 0
     }
 
+    // Send OTP to any valid email address
+    const handleSendOTP = async () => {
+        // Validate email first
+        if (!formData.email) {
+            setErrors({ email: 'Email is required' })
+            return
+        }
+        if (!emailRegex.test(formData.email)) {
+            setErrors({ email: 'Please enter a valid email address' })
+            return
+        }
+
+        setOtpData(prev => ({ ...prev, otpLoading: true }))
+        setErrors({})
+
+        try {
+            const result = await sendOTP(formData.email.toLowerCase())
+            
+            if (result.success) {
+                setOtpData(prev => ({
+                    ...prev,
+                    isOtpSent: true,
+                    otpLoading: false,
+                    otpCountdown: result.expiresIn || 600 // 10 minutes
+                }))
+                
+                // Start countdown timer
+                const timer = setInterval(() => {
+                    setOtpData(prev => {
+                        if (prev.otpCountdown <= 1) {
+                            clearInterval(timer)
+                            return { ...prev, otpCountdown: 0, isOtpSent: false }
+                        }
+                        return { ...prev, otpCountdown: prev.otpCountdown - 1 }
+                    })
+                }, 1000)
+                
+            } else {
+                setErrors({ email: result.message || 'Failed to send OTP' })
+                setOtpData(prev => ({ ...prev, otpLoading: false }))
+            }
+        } catch (error) {
+            console.error('Send OTP error:', error)
+            setErrors({ email: 'Failed to send OTP. Please try again.' })
+            setOtpData(prev => ({ ...prev, otpLoading: false }))
+        }
+    }
+
+    // Verify OTP
+    const handleVerifyOTP = async () => {
+        if (!otpData.otp || otpData.otp.length !== 6) {
+            setErrors({ otp: 'Please enter a valid 6-digit OTP' })
+            return
+        }
+
+        setOtpData(prev => ({ ...prev, otpLoading: true }))
+        setErrors({})
+
+        try {
+            const result = await verifyOTP(formData.email.toLowerCase(), otpData.otp)
+            
+            if (result.success) {
+                setOtpData(prev => ({
+                    ...prev,
+                    isOtpVerified: true,
+                    otpLoading: false
+                }))
+            } else {
+                setErrors({ otp: result.message || 'Invalid OTP' })
+                setOtpData(prev => ({ ...prev, otpLoading: false }))
+            }
+        } catch (error) {
+            console.error('Verify OTP error:', error)
+            setErrors({ otp: 'Failed to verify OTP. Please try again.' })
+            setOtpData(prev => ({ ...prev, otpLoading: false }))
+        }
+    }
+
     const handleSubmit = async (e) => {
         e.preventDefault()
 
@@ -83,20 +177,32 @@ function RegisterPage() {
             return
         }
 
+        // Check if OTP is verified
+        if (!otpData.isOtpVerified) {
+            setErrors({ general: 'Please verify your email with OTP first' })
+            return
+        }
+
         setLoading(true)
-        console.log('📝 Attempting registration with:', {
+        console.log('� CREATE ACCOUNT BUTTON CLICKED!')
+        console.log('�📝 Attempting registration with OTP for:', {
             name: formData.name,
             email: formData.email,
-            role: formData.role
+            role: formData.role,
+            otpProvided: !!otpData.otp,
+            otpValue: otpData.otp
         })
 
         try {
-            const result = await register(
+            console.log('🔥 About to call registerWithOTP...')
+            const result = await registerWithOTP(
                 formData.name.trim(),
                 formData.email.toLowerCase(),
                 formData.password,
-                formData.role
+                formData.role,
+                otpData.otp
             )
+            console.log('🔥 registerWithOTP returned:', result)
 
             if (result.success) {
                 console.log('✅ Registration successful:', result.user)
@@ -172,21 +278,83 @@ function RegisterPage() {
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Email Address <span className="text-red-500">*</span>
                             </label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                disabled={loading}
-                                placeholder="Enter your email address"
-                                autoComplete="email"
-                            />
+                            <div className="flex gap-2">
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className={`flex-1 px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                    disabled={loading || otpData.isOtpSent}
+                                    placeholder="Enter your email address (@gmail.com or @nec.edu.in)"
+                                    autoComplete="email"
+                                />
+                                {!otpData.isOtpSent && (
+                                    <button
+                                        type="button"
+                                        onClick={handleSendOTP}
+                                        disabled={otpData.otpLoading || !formData.email}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
+                                    >
+                                        {otpData.otpLoading ? 'Sending...' : 'Send OTP'}
+                                    </button>
+                                )}
+                            </div>
                             {errors.email && (
                                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>
                             )}
+                            {otpData.isOtpSent && (
+                                <p className="mt-1 text-sm text-green-600">
+                                    ✅ OTP sent to your email! Check your inbox.
+                                </p>
+                            )}
                         </div>
+
+                        {/* OTP Verification */}
+                        {otpData.isOtpSent && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Enter OTP <span className="text-red-500">*</span>
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        name="otp"
+                                        value={otpData.otp}
+                                        onChange={handleChange}
+                                        maxLength={6}
+                                        className={`flex-1 px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.otp ? 'border-red-500' : 'border-gray-300'
+                                            }`}
+                                        disabled={loading || otpData.isOtpVerified}
+                                        placeholder="Enter 6-digit OTP"
+                                    />
+                                    {!otpData.isOtpVerified && (
+                                        <button
+                                            type="button"
+                                            onClick={handleVerifyOTP}
+                                            disabled={otpData.otpLoading || !otpData.otp || otpData.otp.length !== 6}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
+                                        >
+                                            {otpData.otpLoading ? 'Verifying...' : 'Verify'}
+                                        </button>
+                                    )}
+                                </div>
+                                {errors.otp && (
+                                    <p className="mt-1 text-sm text-red-600">{errors.otp}</p>
+                                )}
+                                {otpData.isOtpVerified && (
+                                    <p className="mt-1 text-sm text-green-600">
+                                        ✅ Email verified successfully!
+                                    </p>
+                                )}
+                                {otpData.otpCountdown > 0 && (
+                                    <p className="mt-1 text-sm text-gray-600">
+                                        OTP expires in {Math.floor(otpData.otpCountdown / 60)}:{(otpData.otpCountdown % 60).toString().padStart(2, '0')}
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         {/* Password */}
                         <div>
@@ -255,7 +423,7 @@ function RegisterPage() {
 
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || !otpData.isOtpVerified}
                             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed"
                         >
                             {loading ? (
@@ -266,6 +434,8 @@ function RegisterPage() {
                                     </svg>
                                     Creating account...
                                 </div>
+                            ) : !otpData.isOtpVerified ? (
+                                'Verify Email First'
                             ) : (
                                 'Create Account'
                             )}

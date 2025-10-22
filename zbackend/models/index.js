@@ -146,7 +146,7 @@ User.hasMany(Incident, {
 });
 Incident.belongsTo(User, {
     foreignKey: 'reported_by',
-    as: 'reporter'
+    as: 'incidentReporter'  // ✅ FIXED - Matches routes/incidents.js
 });
 
 // User - Incident associations (assignee)
@@ -156,7 +156,7 @@ User.hasMany(Incident, {
 });
 Incident.belongsTo(User, {
     foreignKey: 'assigned_to',
-    as: 'assignee'
+    as: 'incidentAssignee'  // ✅ FIXED - Matches routes/incidents.js
 });
 
 // User - Incident associations (resolver)
@@ -166,7 +166,7 @@ User.hasMany(Incident, {
 });
 Incident.belongsTo(User, {
     foreignKey: 'resolved_by',
-    as: 'resolver'
+    as: 'incidentResolver'  // ✅ FIXED - Matches routes/incidents.js
 });
 
 // User - Training associations (creator)
@@ -260,7 +260,7 @@ Equipment.hasMany(Incident, {
 });
 Incident.belongsTo(Equipment, {
     foreignKey: 'equipment_id',
-    as: 'equipment'
+    as: 'relatedEquipment'  // ✅ FIXED - Matches routes/incidents.js
 });
 
 // Equipment - Training associations

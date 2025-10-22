@@ -87,6 +87,97 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Send OTP to Gmail for verification
+    const sendOTP = async (email) => {
+        try {
+            console.log('Sending OTP to:', email);
+
+            const response = await fetch('/api/auth/send-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await response.json();
+            console.log('Send OTP response:', data);
+
+            if (response.ok && data.success) {
+                return { success: true, message: data.message, expiresIn: data.expiresIn };
+            } else {
+                return { success: false, message: data.message || 'Failed to send OTP' };
+            }
+        } catch (error) {
+            console.error('Send OTP error:', error);
+            return { success: false, message: 'Network error. Please check your connection.' };
+        }
+    };
+
+    // Verify OTP
+    const verifyOTP = async (email, otp) => {
+        try {
+            console.log('Verifying OTP for:', email);
+
+            const response = await fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, otp })
+            });
+
+            const data = await response.json();
+            console.log('Verify OTP response:', data);
+
+            return {
+                success: data.success,
+                message: data.message || (data.success ? 'OTP verified successfully' : 'OTP verification failed')
+            };
+        } catch (error) {
+            console.error('Verify OTP error:', error);
+            return { success: false, message: 'Network error. Please check your connection.' };
+        }
+    };
+
+    // Register with OTP verification
+    const registerWithOTP = async (name, email, password, role = 'student', otp) => {
+        try {
+            console.log('🔥 DEBUG: registerWithOTP called with:', { name, email, role, otp: otp ? 'PROVIDED' : 'MISSING' });
+            console.log('Attempting registration with OTP for:', email);
+
+            const response = await fetch('/api/auth/register-with-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email, password, role, otp })
+            });
+
+            const data = await response.json();
+            console.log('Registration with OTP response:', data);
+
+            if (response.ok && data.success && data.data && data.data.token) {
+                // Store token and user data
+                localStorage.setItem('token', data.data.token);
+                localStorage.setItem('user', JSON.stringify(data.data.user));
+
+                // Update state
+                setToken(data.data.token);
+                setUser(data.data.user);
+
+                console.log('Registration successful, user:', data.data.user);
+                return { success: true, user: data.data.user };
+            } else {
+                console.error('Registration failed:', data.message);
+                return { success: false, message: data.message || 'Registration failed' };
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            return { success: false, message: 'Network error. Please check your connection.' };
+        }
+    };
+
     const register = async (name, email, password, role = 'student') => {
         try {
             console.log('Attempting registration for:', email);
@@ -177,6 +268,9 @@ export const AuthProvider = ({ children }) => {
         token,
         login,
         register,
+        registerWithOTP,
+        sendOTP,
+        verifyOTP,
         logout,
         loading,
         isAuthenticated: !!token && !!user,
@@ -189,4 +283,13 @@ export const AuthProvider = ({ children }) => {
             {children}
         </AuthContext.Provider>
     );
+};
+
+// Custom hook to use the AuthContext
+export const useAuth = () => {
+    const context = React.useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };

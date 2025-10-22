@@ -564,7 +564,7 @@ router.post('/bulk-import', async (req, res) => {
                     condition_status: data.condition_status || 'good',
                     purchase_price: data.purchase_price ? parseFloat(data.purchase_price) : null,
                     current_value: data.current_value ? parseFloat(data.current_value) : null,
-                    purchase_date: data.purchase_date ? new Date(data.purchase_date) : null,
+                    purchase_date: data.purchase_date ? new Date(data.purchase_date) : new Date(),
                     warranty_expiry: data.warranty_expiry ? new Date(data.warranty_expiry) : null,
                     processor: data.processor?.trim() || null,
                     ram: data.ram?.trim() || null,
@@ -572,8 +572,7 @@ router.post('/bulk-import', async (req, res) => {
                     graphics_card: data.graphics_card?.trim() || null,
                     operating_system: data.operating_system?.trim() || null,
                     is_active: true,
-                    created_by: req.user.userId,
-                    updated_by: req.user.userId
+                    created_by: req.user.userId
                 };
 
                 // Validate status values
@@ -592,12 +591,33 @@ router.post('/bulk-import', async (req, res) => {
                     continue;
                 }
 
+                // Validate category
+                const validCategories = [
+                    'computer', 'printer', 'projector', 'scanner', 'microscope',
+                    'centrifuge', 'spectrophotometer', 'ph_meter', 'balance',
+                    'incubator', 'autoclave', 'pipette', 'thermometer',
+                    'glassware', 'safety_equipment', 'lab_equipment', 'network', 'network_equipment', 'other'
+                ];
+                if (!validCategories.includes(equipmentData.category)) {
+                    results.failed++;
+                    results.errors.push(`Row ${rowNumber}: Invalid category '${equipmentData.category}'. Must be one of: ${validCategories.join(', ')}`);
+                    continue;
+                }
+
                 // Create equipment
+                console.log(`📝 Creating equipment row ${rowNumber}:`, {
+                    name: equipmentData.name,
+                    serial_number: equipmentData.serial_number,
+                    category: equipmentData.category,
+                    lab_id: equipmentData.lab_id
+                });
                 await Equipment.create(equipmentData);
+                console.log(`✅ Successfully created equipment: ${equipmentData.name} (${equipmentData.serial_number})`);
                 results.success++;
 
             } catch (error) {
-                console.error(`Error importing equipment row ${rowNumber}:`, error);
+                console.error(`❌ Error importing equipment row ${rowNumber}:`, error);
+                console.error(`   Data being processed:`, equipmentData);
                 results.failed++;
                 results.errors.push(`Row ${rowNumber}: ${error.message}`);
             }

@@ -27,10 +27,19 @@ const User = sequelize.define('User', {
     },
     password: {
         type: DataTypes.STRING(255),
-        allowNull: false,
+        allowNull: true, // Allow null for OAuth users
         validate: {
-            notEmpty: true,
-            len: [6, 255]
+            // Custom validator to require password for non-OAuth users
+            passwordRequired(value) {
+                // If user has OAuth IDs, password can be null
+                if (this.google_id || this.github_id || this.facebook_id) {
+                    return;
+                }
+                // For regular users, password is required
+                if (!value || value.length < 6) {
+                    throw new Error('Password is required and must be at least 6 characters long');
+                }
+            }
         }
     },
     role: {
