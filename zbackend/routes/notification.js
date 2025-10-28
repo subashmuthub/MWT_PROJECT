@@ -4,7 +4,7 @@ const router = express.Router();
 const { authenticateToken } = require('../middleware/auth');
 const Notification = require('../models/Notification');
 const NotificationSettings = require('../models/NotificationSettings');
-const { createNotification } = require('../utils/notificationService');
+const { createNotification, sendEmailOnly } = require('../utils/notificationService');
 
 // Apply authentication middleware to all routes
 router.use(authenticateToken);
@@ -14,18 +14,18 @@ router.post('/test', async (req, res) => {
     try {
         const { title = 'Test Notification', message = 'This is a test notification', type = 'info' } = req.body;
         
-        const notification = await createNotification(
-            req.user.id,
+        const notification = await createNotification({
+            user_id: req.user.id,
             type,
             title,
             message,
-            'normal',
-            req.user.id
-        );
+            priority: 'normal',
+            created_by: req.user.id
+        });
 
         res.json({
             success: true,
-            message: 'Test notification created',
+            message: 'Test notification created and email sent',
             data: notification
         });
     } catch (error) {
@@ -33,6 +33,27 @@ router.post('/test', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to create test notification',
+            error: error.message
+        });
+    }
+});
+
+// POST send test email notification
+router.post('/test-email', async (req, res) => {
+    try {
+        const { title = 'Test Email Notification', message = 'This is a test email notification from NEC LabMS', type = 'system' } = req.body;
+        
+        const emailSent = await sendEmailOnly(req.user.id, type, title, message);
+
+        res.json({
+            success: emailSent,
+            message: emailSent ? 'Test email notification sent successfully' : 'Failed to send email notification'
+        });
+    } catch (error) {
+        console.error('Error sending test email notification:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send test email notification',
             error: error.message
         });
     }

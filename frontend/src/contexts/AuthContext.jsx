@@ -1,7 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -18,7 +16,7 @@ export const AuthProvider = ({ children }) => {
 
                 if (storedToken && storedUser) {
                     // Verify token is still valid
-                    const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+                    const response = await fetch('/api/auth/verify', {
                         headers: {
                             'Authorization': `Bearer ${storedToken}`,
                             'Content-Type': 'application/json'
@@ -57,7 +55,7 @@ export const AuthProvider = ({ children }) => {
         try {
             console.log('Attempting login for:', email);
 
-            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -94,7 +92,7 @@ export const AuthProvider = ({ children }) => {
         try {
             console.log('Sending OTP to:', email);
 
-            const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+            const response = await fetch('/api/auth/send-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -121,7 +119,7 @@ export const AuthProvider = ({ children }) => {
         try {
             console.log('Verifying OTP for:', email);
 
-            const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+            const response = await fetch('/api/auth/verify-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -148,7 +146,7 @@ export const AuthProvider = ({ children }) => {
             console.log('🔥 DEBUG: registerWithOTP called with:', { name, email, role, otp: otp ? 'PROVIDED' : 'MISSING' });
             console.log('Attempting registration with OTP for:', email);
 
-            const response = await fetch(`${API_BASE_URL}/api/auth/register-with-otp`, {
+            const response = await fetch('/api/auth/register-with-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -184,7 +182,7 @@ export const AuthProvider = ({ children }) => {
         try {
             console.log('Attempting registration for:', email);
 
-            const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+            const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -228,7 +226,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
 
         // Optional: Call backend logout endpoint
-        fetch(`${API_BASE_URL}/api/auth/logout`, {
+        fetch('/api/auth/logout', {
             method: 'POST',
             headers: {
                 'Authorization': token ? `Bearer ${token}` : '',

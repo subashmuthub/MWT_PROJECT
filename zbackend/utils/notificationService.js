@@ -1,6 +1,7 @@
 // server/utils/notificationService.js
 const Notification = require('../models/Notification');
 const NotificationSettings = require('../models/NotificationSettings');
+const { sendNotificationEmail } = require('../services/emailNotificationService');
 
 // Create a notification for a user
 async function createNotification(notificationData) {
@@ -44,6 +45,18 @@ async function createNotification(notificationData) {
         });
 
         console.log(`✅ Notification created: ${title} for user ${userId}`);
+
+        // Send email notification if user has email notifications enabled
+        try {
+            const emailSent = await sendNotificationEmail(userId, type, title, message, metadata);
+            if (emailSent) {
+                console.log(`📧 Email notification sent for: ${title}`);
+            }
+        } catch (emailError) {
+            console.error('❌ Failed to send email notification:', emailError);
+            // Don't fail the entire notification if email fails
+        }
+
         return notification;
     } catch (error) {
         console.error('❌ Error creating notification:', error);
@@ -52,12 +65,20 @@ async function createNotification(notificationData) {
 }
 
 // Send a notification to multiple users
-async function notifyUsers(userIds, type, title, message, priority = 'normal', createdBy = null) {
+async function notifyUsers(userIds, type, title, message, priority = 'normal', createdBy = null, metadata = null) {
     try {
         const notifications = [];
 
         for (const userId of userIds) {
-            const notification = await createNotification(userId, type, title, message, priority, createdBy);
+            const notification = await createNotification({
+                user_id: userId,
+                type,
+                title,
+                message,
+                priority,
+                created_by: createdBy,
+                metadata
+            });
             if (notification) {
                 notifications.push(notification);
             }
@@ -124,10 +145,23 @@ async function markAllAsRead(userId) {
     }
 }
 
+// Send immediate email notification without creating in-app notification
+async function sendEmailOnly(userId, type, title, message, metadata = null) {
+    try {
+        const emailSent = await sendNotificationEmail(userId, type, title, message, metadata);
+        console.log(`📧 Direct email notification sent: ${title} to user ${userId}`);
+        return emailSent;
+    } catch (error) {
+        console.error('❌ Error sending direct email notification:', error);
+        return false;
+    }
+}
+
 module.exports = {
     createNotification,
     notifyUsers,
     getUnreadCount,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    sendEmailOnly
 };
