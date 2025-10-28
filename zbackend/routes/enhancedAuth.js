@@ -728,4 +728,64 @@ router.get('/verify', async (req, res) => {
     }
 });
 
+// @route   POST /api/auth/create-admin
+// @desc    Create admin user (temporary endpoint)
+router.post('/create-admin', async (req, res) => {
+    try {
+        const bcrypt = require('bcryptjs');
+        
+        // Check if admin already exists
+        const existingAdmin = await User.findOne({ 
+            where: { email: '2312401@nec.edu.in' } 
+        });
+        
+        if (existingAdmin) {
+            return res.json({
+                success: true,
+                message: 'Admin user already exists',
+                user: {
+                    id: existingAdmin.id,
+                    email: existingAdmin.email,
+                    role: existingAdmin.role
+                }
+            });
+        }
+
+        // Hash password
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash('adminsm', saltRounds);
+
+        // Create admin user
+        const adminUser = await User.create({
+            name: 'Admin User',
+            email: '2312401@nec.edu.in',
+            password: hashedPassword,
+            role: 'admin',
+            is_active: true,
+            is_email_verified: true
+        });
+
+        console.log('✅ Admin user created successfully:', adminUser.email);
+
+        res.json({
+            success: true,
+            message: 'Admin user created successfully',
+            user: {
+                id: adminUser.id,
+                name: adminUser.name,
+                email: adminUser.email,
+                role: adminUser.role
+            }
+        });
+
+    } catch (error) {
+        console.error('💥 Error creating admin user:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create admin user',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
