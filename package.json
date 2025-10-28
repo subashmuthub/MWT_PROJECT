@@ -1,0 +1,14 @@
+{
+  "name": "mwt-project",
+  "version": "1.0.0",
+  "description": "Lab Management System - Full Stack Application",
+  "main": "zbackend/server.js",
+  "scripts": {
+    "start": "cd zbackend && npm start",
+    "dev": "cd zbackend && npm run dev",
+    "install": "cd zbackend && npm install"
+  },
+  "keywords": ["lab-management", "full-stack", "react", "node"],
+  "author": "Your Name",
+  "license": "MIT"
+}
