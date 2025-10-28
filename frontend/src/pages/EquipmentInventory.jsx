@@ -954,6 +954,247 @@ function AddEquipmentModal({ isOpen, onClose, onEquipmentAdded, labs }) {
     )
 }
 
+// Edit Equipment Modal Component
+function EditEquipmentModal({ isOpen, onClose, equipment, onEquipmentUpdated }) {
+    const { token } = useAuth()
+    const [formData, setFormData] = useState({
+        name: equipment?.name || '',
+        description: equipment?.description || '',
+        serial_number: equipment?.serial_number || '',
+        model: equipment?.model || '',
+        manufacturer: equipment?.manufacturer || '',
+        status: equipment?.status || 'available',
+        condition_status: equipment?.condition_status || 'excellent',
+        location_details: equipment?.location_details || '',
+        purchase_price: equipment?.purchase_price || '',
+        current_value: equipment?.current_value || '',
+        purchase_date: equipment?.purchase_date ? equipment.purchase_date.split('T')[0] : '',
+        warranty_expiry: equipment?.warranty_expiry ? equipment.warranty_expiry.split('T')[0] : ''
+    })
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+
+    useEffect(() => {
+        if (equipment) {
+            setFormData({
+                name: equipment.name || '',
+                description: equipment.description || '',
+                serial_number: equipment.serial_number || '',
+                model: equipment.model || '',
+                manufacturer: equipment.manufacturer || '',
+                status: equipment.status || 'available',
+                condition_status: equipment.condition_status || 'excellent',
+                location_details: equipment.location_details || '',
+                purchase_price: equipment.purchase_price || '',
+                current_value: equipment.current_value || '',
+                purchase_date: equipment.purchase_date ? equipment.purchase_date.split('T')[0] : '',
+                warranty_expiry: equipment.warranty_expiry ? equipment.warranty_expiry.split('T')[0] : ''
+            })
+        }
+    }, [equipment])
+
+    const handleChange = (e) => {
+        const { name, value } = e.target
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }))
+        setError('')
+    }
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setLoading(true)
+        setError('')
+
+        try {
+            const response = await fetch(`/api/equipment/${equipment.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(formData)
+            })
+
+            const result = await response.json()
+
+            if (result.success) {
+                onEquipmentUpdated(result.data.equipment)
+                onClose()
+            } else {
+                setError(result.message || 'Failed to update equipment')
+            }
+        } catch (error) {
+            console.error('Error updating equipment:', error)
+            setError('Failed to update equipment. Please try again.')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    if (!isOpen) return null
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-white">Edit Equipment</h2>
+                                <p className="text-blue-100 text-sm">Update equipment information</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-white hover:bg-opacity-10 rounded-lg"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div className="p-6 overflow-y-auto max-h-[calc(95vh-120px)]">
+                    {error && (
+                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-lg mb-6">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-2">Equipment Name *</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-2">Serial Number *</label>
+                                <input
+                                    type="text"
+                                    name="serial_number"
+                                    value={formData.serial_number}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-2">Manufacturer</label>
+                                <input
+                                    type="text"
+                                    name="manufacturer"
+                                    value={formData.manufacturer}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-2">Model</label>
+                                <input
+                                    type="text"
+                                    name="model"
+                                    value={formData.model}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-2">Status</label>
+                                <select
+                                    name="status"
+                                    value={formData.status}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="available">Available</option>
+                                    <option value="in_use">In Use</option>
+                                    <option value="maintenance">Under Maintenance</option>
+                                    <option value="broken">Out of Order</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-2">Condition</label>
+                                <select
+                                    name="condition_status"
+                                    value={formData.condition_status}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="excellent">Excellent</option>
+                                    <option value="good">Good</option>
+                                    <option value="fair">Fair</option>
+                                    <option value="poor">Poor</option>
+                                </select>
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-gray-700 text-sm font-medium mb-2">Location Details</label>
+                                <input
+                                    type="text"
+                                    name="location_details"
+                                    value={formData.location_details}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="e.g., Room 101, Shelf A"
+                                />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-gray-700 text-sm font-medium mb-2">Description</label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
+                                    onChange={handleChange}
+                                    rows="3"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Equipment description"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="px-6 py-2 text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                {loading ? 'Updating...' : 'Update Equipment'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 // Main Equipment Inventory Component - Enhanced UI
 export default function EquipmentInventory() {
     const { token, user, logout } = useAuth()
@@ -980,6 +1221,8 @@ export default function EquipmentInventory() {
     const [error, setError] = useState('')
     const [showAddForm, setShowAddForm] = useState(false)
     const [showImportModal, setShowImportModal] = useState(false)
+    const [showEditModal, setShowEditModal] = useState(false)
+    const [editingEquipment, setEditingEquipment] = useState(null)
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
     const [showNotifications, setShowNotifications] = useState(false)
@@ -1017,7 +1260,15 @@ export default function EquipmentInventory() {
 
     useEffect(() => {
         document.title = 'Equipment Inventory | LabMS'
-    }, [])
+        
+        // Check if we need to open edit modal from navigation state
+        if (location.state?.shouldOpenEditModal && location.state?.editEquipment) {
+            setEditingEquipment(location.state.editEquipment)
+            setShowEditModal(true)
+            // Clear the navigation state
+            navigate('/equipment', { replace: true })
+        }
+    }, [location.state, navigate])
 
     useEffect(() => {
         // Set document title
@@ -1044,6 +1295,9 @@ export default function EquipmentInventory() {
                         queryParams.append(key, filters[key])
                     }
                 })
+                
+                // Add limit to get all equipment items (default backend limit is 50)
+                queryParams.append('limit', '1000')
 
                 const labsResponse = await fetch(`${API_BASE_URL}/labs`, { headers })
                 if (labsResponse.ok) {
@@ -1567,6 +1821,26 @@ export default function EquipmentInventory() {
                     labs={labs}
                 />
             )}
+
+            {/* Edit Equipment Modal */}
+            <EditEquipmentModal
+                isOpen={showEditModal}
+                onClose={() => {
+                    setShowEditModal(false)
+                    setEditingEquipment(null)
+                }}
+                equipment={editingEquipment}
+                onEquipmentUpdated={(updatedEquipment) => {
+                    // Update the equipment in the list
+                    setEquipment(prev => 
+                        prev.map(item => 
+                            item.id === updatedEquipment.id ? updatedEquipment : item
+                        )
+                    )
+                    setShowEditModal(false)
+                    setEditingEquipment(null)
+                }}
+            />
 
             {/* Excel Import Modal */}
             {user?.role === 'admin' && (

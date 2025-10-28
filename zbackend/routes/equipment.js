@@ -79,7 +79,7 @@ router.get('/', async (req, res) => {
             category,
             search,
             page = 1,
-            limit = 50
+            limit = 1000  // Increased default limit to handle all equipment items
         } = req.query;
 
         const whereClause = { is_active: true };
@@ -536,88 +536,107 @@ router.post('/bulk-import', async (req, res) => {
                     continue;
                 }
 
-                // Check for duplicate serial number
-                const existingEquipment = await Equipment.findOne({
-                    where: { 
-                        serial_number: data.serial_number,
-                        is_active: true 
+                // Handle multiple equipment items if quantity > 1
+                const quantity = parseInt(data.quantity) || 1;
+                
+                for (let q = 0; q < quantity; q++) {
+                    try {
+                        // Generate unique serial number for each item if quantity > 1
+                        let serialNumber = data.serial_number.trim();
+                        if (quantity > 1) {
+                            serialNumber = `${data.serial_number.trim()}-${(q + 1).toString().padStart(2, '0')}`;
+                        }
+
+                        // Check for duplicate serial number
+                        const existingEquipment = await Equipment.findOne({
+                            where: { 
+                                serial_number: serialNumber,
+                                is_active: true 
+                            }
+                        });
+
+                        if (existingEquipment) {
+                            results.failed++;
+                            results.errors.push(`Row ${rowNumber}: Equipment with serial number ${serialNumber} already exists`);
+                            continue;
+                        }
+
+                        // Prepare equipment data
+                        const equipmentDataItem = {
+                            name: data.name.trim(),
+                            description: data.description?.trim() || null,
+                            serial_number: serialNumber,
+                            model: data.model?.trim() || null,
+                            manufacturer: data.manufacturer?.trim() || null,
+                            category: data.category.trim(),
+                            lab_id: parseInt(data.lab_id),
+                            location_details: data.location_details?.trim() || null,
+                            status: data.status || 'available',
+                            condition_status: data.condition_status || 'good',
+                            purchase_price: data.purchase_price ? parseFloat(data.purchase_price) : null,
+                            current_value: data.current_value ? parseFloat(data.current_value) : null,
+                            purchase_date: data.purchase_date ? new Date(data.purchase_date) : new Date(),
+                            warranty_expiry: data.warranty_expiry ? new Date(data.warranty_expiry) : null,
+                            processor: data.processor?.trim() || null,
+                            ram: data.ram?.trim() || null,
+                            storage: data.storage?.trim() || null,
+                            graphics_card: data.graphics_card?.trim() || null,
+                            operating_system: data.operating_system?.trim() || null,
+                            // Additional fields for your format
+                            stock_register_page: data.stock_register_page ? String(data.stock_register_page) : null,
+                            is_active: true,
+                            created_by: req.user.userId
+                        };
+
+                        // Validate status values
+                        const validStatuses = ['available', 'in_use', 'maintenance', 'retired'];
+                        if (!validStatuses.includes(equipmentDataItem.status)) {
+                            results.failed++;
+                            results.errors.push(`Row ${rowNumber}: Invalid status '${equipmentDataItem.status}'. Must be one of: ${validStatuses.join(', ')}`);
+                            continue;
+                        }
+
+                        // Validate condition status
+                        const validConditions = ['excellent', 'good', 'fair', 'poor', 'damaged'];
+                        if (!validConditions.includes(equipmentDataItem.condition_status)) {
+                            results.failed++;
+                            results.errors.push(`Row ${rowNumber}: Invalid condition '${equipmentDataItem.condition_status}'. Must be one of: ${validConditions.join(', ')}`);
+                            continue;
+                        }
+
+                        // Validate category
+                        const validCategories = [
+                            'computer', 'printer', 'projector', 'scanner', 'microscope',
+                            'centrifuge', 'spectrophotometer', 'ph_meter', 'balance',
+                            'incubator', 'autoclave', 'pipette', 'thermometer',
+                            'glassware', 'safety_equipment', 'lab_equipment', 'network', 'network_equipment', 'other'
+                        ];
+                        if (!validCategories.includes(equipmentDataItem.category)) {
+                            results.failed++;
+                            results.errors.push(`Row ${rowNumber}: Invalid category '${equipmentDataItem.category}'. Must be one of: ${validCategories.join(', ')}`);
+                            continue;
+                        }
+
+                        // Create equipment
+                        console.log(`📝 Creating equipment row ${rowNumber} (${q + 1}/${quantity}):`, {
+                            name: equipmentDataItem.name,
+                            serial_number: equipmentDataItem.serial_number,
+                            category: equipmentDataItem.category,
+                            lab_id: equipmentDataItem.lab_id
+                        });
+                        await Equipment.create(equipmentDataItem);
+                        console.log(`✅ Successfully created equipment: ${equipmentDataItem.name} (${equipmentDataItem.serial_number})`);
+                        results.success++;
+
+                    } catch (itemError) {
+                        console.error(`❌ Error importing equipment row ${rowNumber} item ${q + 1}:`, itemError);
+                        results.failed++;
+                        results.errors.push(`Row ${rowNumber} item ${q + 1}: ${itemError.message}`);
                     }
-                });
-
-                if (existingEquipment) {
-                    results.failed++;
-                    results.errors.push(`Row ${rowNumber}: Equipment with serial number ${data.serial_number} already exists`);
-                    continue;
                 }
-
-                // Prepare equipment data
-                const equipmentData = {
-                    name: data.name.trim(),
-                    description: data.description?.trim() || null,
-                    serial_number: data.serial_number.trim(),
-                    model: data.model?.trim() || null,
-                    manufacturer: data.manufacturer?.trim() || null,
-                    category: data.category.trim(),
-                    lab_id: parseInt(data.lab_id),
-                    location_details: data.location_details?.trim() || null,
-                    status: data.status || 'available',
-                    condition_status: data.condition_status || 'good',
-                    purchase_price: data.purchase_price ? parseFloat(data.purchase_price) : null,
-                    current_value: data.current_value ? parseFloat(data.current_value) : null,
-                    purchase_date: data.purchase_date ? new Date(data.purchase_date) : new Date(),
-                    warranty_expiry: data.warranty_expiry ? new Date(data.warranty_expiry) : null,
-                    processor: data.processor?.trim() || null,
-                    ram: data.ram?.trim() || null,
-                    storage: data.storage?.trim() || null,
-                    graphics_card: data.graphics_card?.trim() || null,
-                    operating_system: data.operating_system?.trim() || null,
-                    is_active: true,
-                    created_by: req.user.userId
-                };
-
-                // Validate status values
-                const validStatuses = ['available', 'in_use', 'maintenance', 'retired'];
-                if (!validStatuses.includes(equipmentData.status)) {
-                    results.failed++;
-                    results.errors.push(`Row ${rowNumber}: Invalid status '${equipmentData.status}'. Must be one of: ${validStatuses.join(', ')}`);
-                    continue;
-                }
-
-                // Validate condition status
-                const validConditions = ['excellent', 'good', 'fair', 'poor', 'damaged'];
-                if (!validConditions.includes(equipmentData.condition_status)) {
-                    results.failed++;
-                    results.errors.push(`Row ${rowNumber}: Invalid condition '${equipmentData.condition_status}'. Must be one of: ${validConditions.join(', ')}`);
-                    continue;
-                }
-
-                // Validate category
-                const validCategories = [
-                    'computer', 'printer', 'projector', 'scanner', 'microscope',
-                    'centrifuge', 'spectrophotometer', 'ph_meter', 'balance',
-                    'incubator', 'autoclave', 'pipette', 'thermometer',
-                    'glassware', 'safety_equipment', 'lab_equipment', 'network', 'network_equipment', 'other'
-                ];
-                if (!validCategories.includes(equipmentData.category)) {
-                    results.failed++;
-                    results.errors.push(`Row ${rowNumber}: Invalid category '${equipmentData.category}'. Must be one of: ${validCategories.join(', ')}`);
-                    continue;
-                }
-
-                // Create equipment
-                console.log(`📝 Creating equipment row ${rowNumber}:`, {
-                    name: equipmentData.name,
-                    serial_number: equipmentData.serial_number,
-                    category: equipmentData.category,
-                    lab_id: equipmentData.lab_id
-                });
-                await Equipment.create(equipmentData);
-                console.log(`✅ Successfully created equipment: ${equipmentData.name} (${equipmentData.serial_number})`);
-                results.success++;
 
             } catch (error) {
-                console.error(`❌ Error importing equipment row ${rowNumber}:`, error);
-                console.error(`   Data being processed:`, equipmentData);
+                console.error(`❌ Error processing equipment row ${rowNumber}:`, error);
                 results.failed++;
                 results.errors.push(`Row ${rowNumber}: ${error.message}`);
             }

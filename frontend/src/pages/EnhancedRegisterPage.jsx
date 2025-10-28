@@ -158,9 +158,11 @@ function EnhancedRegisterPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex flex-col">
+        <div className="min-h-screen bg-cover bg-center bg-no-repeat relative flex flex-col" style={{backgroundImage: 'url(/Images/Home.jpg)'}}>
+            {/* Background overlay for better readability */}
+            <div className="absolute inset-0 bg-black/40"></div>
             {/* Enhanced Header Navigation */}
-            <nav className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 shadow-lg">
+            <nav className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 shadow-lg relative z-10">
                 <div className="px-6 py-4">
                     <div className="flex items-center justify-between">
                         {/* Logo Section */}
@@ -219,7 +221,7 @@ function EnhancedRegisterPage() {
             </nav>
 
             {/* Enhanced Registration Section */}
-            <div className="flex-grow flex items-center justify-center p-6 relative">
+            <div className="flex-grow flex items-center justify-center p-6 relative z-10">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
                     <div className="w-full h-full bg-gradient-to-br from-purple-100 to-blue-100"></div>

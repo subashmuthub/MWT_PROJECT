@@ -1,5 +1,4 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
@@ -181,7 +180,7 @@ router.post('/login', loginValidation, async (req, res) => {
         }
 
         console.log('🔒 Comparing password...');
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = (password === user.password);
 
         if (!isPasswordValid) {
             console.log('❌ Invalid password for:', email);

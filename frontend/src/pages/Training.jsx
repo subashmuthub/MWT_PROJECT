@@ -357,7 +357,7 @@ export default function Training() {
 
     const fetchEquipment = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/equipment`, {
+            const response = await fetch(`${API_BASE_URL}/equipment?limit=1000`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

@@ -55,7 +55,7 @@ const RecentlyAccessed = sequelize.define('RecentlyAccessed', {
 });
 
 // Sync the model (create table if it doesn't exist)
-RecentlyAccessed.sync();
+// RecentlyAccessed.sync(); // Disabled for Docker - tables created by initialization scripts
 
 // Middleware to track item access
 const trackAccess = (itemType) => {

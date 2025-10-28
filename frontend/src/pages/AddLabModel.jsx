@@ -13,7 +13,7 @@ function AddLab() {
         name: '',
         description: '',
         location: '',
-        lab_type: 'general_lab',
+        lab_type: 'cse',
         capacity: 30,
         square_feet: '',
         lab_seats: ''
@@ -527,7 +527,7 @@ function AddLab() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Lab Type <span className="text-red-500">*</span>
+                                                Department <span className="text-red-500">*</span>
                                             </label>
                                             <select
                                                 name="lab_type"
@@ -536,16 +536,14 @@ function AddLab() {
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                                                 required
                                             >
-                                                <option value="general_lab">General Lab</option>
-                                                <option value="computer_lab">Computer Lab</option>
-                                                <option value="chemistry_lab">Chemistry Lab</option>
-                                                <option value="physics_lab">Physics Lab</option>
-                                                <option value="biology_lab">Biology Lab</option>
-                                                <option value="electronics_lab">Electronics Lab</option>
-                                                <option value="mechanical_lab">Mechanical Lab</option>
-                                                <option value="research_lab">Research Lab</option>
+                                                <option value="cse">CSE</option>
+                                                <option value="eee">EEE</option>
+                                                <option value="ece">ECE</option>
+                                                <option value="mech">MECH</option>
+                                                <option value="aids">AIDS</option>
+                                                <option value="sh">S&H</option>
                                             </select>
-                                            <p className="mt-1 text-xs text-gray-500">Select the type of laboratory</p>
+                                            <p className="mt-1 text-xs text-gray-500">Select the department this lab belongs to</p>
                                         </div>
 
                                         <div>
@@ -705,19 +703,31 @@ function AddLab() {
 
                                 {/* Lab Type Legend */}
                                 <div className="mt-6 pt-6 border-t border-gray-200">
-                                    <h4 className="text-sm font-medium text-gray-900 mb-3">Lab Types Guide</h4>
+                                    <h4 className="text-sm font-medium text-gray-900 mb-3">Department Types Guide</h4>
                                     <dl className="space-y-2 text-xs">
                                         <div>
-                                            <dt className="font-medium text-gray-700">Computer Lab</dt>
-                                            <dd className="text-gray-500">For programming and digital work</dd>
+                                            <dt className="font-medium text-gray-700">CSE</dt>
+                                            <dd className="text-gray-500">Computer Science & Engineering</dd>
                                         </div>
                                         <div>
-                                            <dt className="font-medium text-gray-700">Chemistry Lab</dt>
-                                            <dd className="text-gray-500">For chemical experiments</dd>
+                                            <dt className="font-medium text-gray-700">EEE</dt>
+                                            <dd className="text-gray-500">Electrical & Electronics Engineering</dd>
                                         </div>
                                         <div>
-                                            <dt className="font-medium text-gray-700">Research Lab</dt>
-                                            <dd className="text-gray-500">For advanced research projects</dd>
+                                            <dt className="font-medium text-gray-700">ECE</dt>
+                                            <dd className="text-gray-500">Electronics & Communication Engineering</dd>
+                                        </div>
+                                        <div>
+                                            <dt className="font-medium text-gray-700">MECH</dt>
+                                            <dd className="text-gray-500">Mechanical Engineering</dd>
+                                        </div>
+                                        <div>
+                                            <dt className="font-medium text-gray-700">AIDS</dt>
+                                            <dd className="text-gray-500">Artificial Intelligence & Data Science</dd>
+                                        </div>
+                                        <div>
+                                            <dt className="font-medium text-gray-700">S&H</dt>
+                                            <dd className="text-gray-500">Sciences & Humanities</dd>
                                         </div>
                                     </dl>
                                 </div>

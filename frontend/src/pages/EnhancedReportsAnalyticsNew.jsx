@@ -34,21 +34,51 @@ export default function EnhancedReportsAnalyticsNew() {
     const [equipment, setEquipment] = useState([])
 
     const reportTypes = [
-        { value: 'lab_management', label: '🏢 Lab Management', description: 'Lab information, capacity, and location details' },
-        { value: 'equipment_management', label: '⚙️ Equipment Management', description: 'Complete equipment listing with specifications' },
-        { value: 'bookings', label: '📅 Bookings', description: 'Booking trends and user patterns' },
-        { value: 'incidents', label: '⚠️ Incidents', description: 'Incident reports and safety tracking' },
-        { value: 'orders', label: '📦 Orders', description: 'Order management and procurement tracking' },
-        { value: 'maintenance', label: '🔧 Maintenance', description: 'Maintenance schedules and history' }
+        { 
+            value: 'lab_management', 
+            label: 'Lab Management', 
+            description: 'Lab information, capacity, and location details',
+            icon: '🏢'
+        },
+        { 
+            value: 'equipment_management', 
+            label: 'Equipment Management', 
+            description: 'Complete equipment listing with specifications',
+            icon: '⚙️'
+        },
+        { 
+            value: 'bookings', 
+            label: 'Bookings', 
+            description: 'Booking trends and user patterns',
+            icon: '📅'
+        },
+        { 
+            value: 'incidents', 
+            label: 'Incidents', 
+            description: 'Incident reports and safety tracking',
+            icon: '⚠️'
+        },
+        { 
+            value: 'orders', 
+            label: 'Orders', 
+            description: 'Order management and procurement tracking',
+            icon: '📦'
+        },
+        { 
+            value: 'maintenance', 
+            label: 'Maintenance', 
+            description: 'Maintenance schedules and history',
+            icon: '🔧'
+        }
     ]
 
     const equipmentCategories = [
-        { value: 'computer', label: '💻 Computer Equipment' },
-        { value: 'projector', label: '📽️ Projector Equipment' },
-        { value: 'printer', label: '🖨️ Printer Equipment' },
-        { value: 'microscope', label: '🔬 Microscope Equipment' },
-        { value: 'laboratory', label: '⚗️ Laboratory Equipment' },
-        { value: 'network', label: '🌐 Network Equipment' }
+        { value: 'computer', label: 'Computer Equipment', icon: '💻' },
+        { value: 'projector', label: 'Projector Equipment', icon: '📽️' },
+        { value: 'printer', label: 'Printer Equipment', icon: '🖨️' },
+        { value: 'microscope', label: 'Microscope Equipment', icon: '🔬' },
+        { value: 'laboratory', label: 'Laboratory Equipment', icon: '⚗️' },
+        { value: 'network', label: 'Network Equipment', icon: '🌐' }
     ]
 
     // Navigation items (complete list matching Dashboard)
@@ -228,7 +258,7 @@ export default function EnhancedReportsAnalyticsNew() {
             }
             
             // Fetch real equipment data for initial report display
-            const equipmentResponse = await fetch(`${API_BASE_URL}/equipment`, { headers })
+            const equipmentResponse = await fetch(`${API_BASE_URL}/equipment?limit=1000`, { headers })
             if (equipmentResponse.ok) {
                 const equipmentData = await equipmentResponse.json()
                 const equipmentList = equipmentData.data?.equipment || []
@@ -319,7 +349,7 @@ export default function EnhancedReportsAnalyticsNew() {
 
     // Fetch Equipment Inventory Report
     const fetchEquipmentReport = async () => {
-        const response = await fetch(`${API_BASE_URL}/equipment`, {
+        const response = await fetch(`${API_BASE_URL}/equipment?limit=1000`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -649,7 +679,7 @@ export default function EnhancedReportsAnalyticsNew() {
     }
 
     return (
-        <div className="min-h-screen w-full bg-gray-50 flex">
+        <div className="min-h-screen bg-gray-50">
             {/* Sidebar */}
             <div className={`fixed inset-y-0 left-0 z-50 ${sidebarCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg border-r border-gray-200 transition-all duration-300`}>
                 {/* Sidebar Header */}
@@ -748,15 +778,18 @@ export default function EnhancedReportsAnalyticsNew() {
             </div>
 
             {/* Main Content */}
-            <div className={`flex-1 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
+            <div className={`${sidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 min-h-screen`}>
                 {/* Header */}
                 <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
                     <div className="px-6 py-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                                    📊 Advanced Reports & Analytics
-                                </h1>
+                                <div className="flex items-center space-x-3">
+                                    <span className="text-3xl">📊</span>
+                                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                                        Advanced Reports & Analytics
+                                    </h1>
+                                </div>
                                 <p className="mt-1 text-gray-600">
                                     Generate comprehensive Excel reports with hierarchical filtering
                                 </p>
@@ -766,11 +799,14 @@ export default function EnhancedReportsAnalyticsNew() {
                 </header>
 
                 {/* Page Content */}
-                <main className="p-6">
+                <main className="p-6 max-w-full overflow-x-hidden">
             {/* Report Type Selection */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">📋 Select Report Type</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2 mb-4">
+                    <span className="text-xl">📋</span>
+                    <h2 className="text-xl font-semibold text-gray-900">Select Report Type</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {reportTypes.map((type) => (
                         <button
                             key={type.value}
@@ -781,8 +817,11 @@ export default function EnhancedReportsAnalyticsNew() {
                                     : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                             }`}
                         >
-                            <div className="font-medium text-gray-900">{type.label}</div>
-                            <div className="text-sm text-gray-600 mt-1">{type.description}</div>
+                            <div className="flex items-center space-x-3 mb-2">
+                                <span className="text-2xl">{type.icon}</span>
+                                <span className="font-medium text-gray-900">{type.label}</span>
+                            </div>
+                            <div className="text-sm text-gray-600">{type.description}</div>
                         </button>
                     ))}
                 </div>
@@ -790,12 +829,18 @@ export default function EnhancedReportsAnalyticsNew() {
 
             {/* Hierarchical Filters */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">🔍 Hierarchical Filters</h2>
+                <div className="flex items-center space-x-2 mb-4">
+                    <span className="text-xl">🔍</span>
+                    <h2 className="text-xl font-semibold text-gray-900">Hierarchical Filters</h2>
+                </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-6">
                     {/* Lab Selection */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">🏢 Select Lab</label>
+                        <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+                            <span>🏢</span>
+                            <span>Select Lab</span>
+                        </label>
                         <select
                             value={selectedLab}
                             onChange={(e) => setSelectedLab(e.target.value)}
@@ -810,7 +855,10 @@ export default function EnhancedReportsAnalyticsNew() {
 
                     {/* Equipment Category */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">📦 Equipment Category</label>
+                        <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+                            <span>📦</span>
+                            <span>Equipment Category</span>
+                        </label>
                         <select
                             value={selectedEquipmentCategory}
                             onChange={(e) => setSelectedEquipmentCategory(e.target.value)}
@@ -818,14 +866,19 @@ export default function EnhancedReportsAnalyticsNew() {
                         >
                             <option value="">All Categories</option>
                             {equipmentCategories.map((category) => (
-                                <option key={category.value} value={category.value}>{category.label}</option>
+                                <option key={category.value} value={category.value}>
+                                    {category.icon} {category.label}
+                                </option>
                             ))}
                         </select>
                     </div>
 
                     {/* Date Range Type */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">📅 Date Range Type</label>
+                        <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+                            <span>📅</span>
+                            <span>Date Range Type</span>
+                        </label>
                         <select
                             value={dateRange}
                             onChange={(e) => setDateRange(e.target.value)}
@@ -847,7 +900,17 @@ export default function EnhancedReportsAnalyticsNew() {
                             disabled={loading}
                             className="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
                         >
-                            {loading ? '⏳ Loading...' : '📊 Generate Report'}
+                            {loading ? (
+                                <span className="flex items-center justify-center space-x-2">
+                                    <span>⏳</span>
+                                    <span>Loading...</span>
+                                </span>
+                            ) : (
+                                <span className="flex items-center justify-center space-x-2">
+                                    <span>📊</span>
+                                    <span>Generate Report</span>
+                                </span>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -857,7 +920,10 @@ export default function EnhancedReportsAnalyticsNew() {
                     <div className="mt-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">📅 From Date</label>
+                                <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+                                    <span>📅</span>
+                                    <span>From Date</span>
+                                </label>
                                 <input
                                     type="date"
                                     value={fromDate}
@@ -866,7 +932,10 @@ export default function EnhancedReportsAnalyticsNew() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">📅 To Date</label>
+                                <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 mb-2">
+                                    <span>📅</span>
+                                    <span>To Date</span>
+                                </label>
                                 <input
                                     type="date"
                                     value={toDate}
@@ -877,8 +946,9 @@ export default function EnhancedReportsAnalyticsNew() {
                             </div>
                         </div>
                         {fromDate && toDate && fromDate > toDate && (
-                            <div className="mt-2 text-red-600 text-sm">
-                                ⚠️ From Date cannot be later than To Date
+                            <div className="mt-2 text-red-600 text-sm flex items-center space-x-2">
+                                <span>⚠️</span>
+                                <span>From Date cannot be later than To Date</span>
                             </div>
                         )}
                     </div>
@@ -889,12 +959,18 @@ export default function EnhancedReportsAnalyticsNew() {
             {reportData.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold text-gray-900">📊 Report Results</h2>
+                        <div className="flex items-center space-x-2">
+                            <span className="text-xl">📊</span>
+                            <h2 className="text-xl font-semibold text-gray-900">Report Results</h2>
+                        </div>
                         <button
                             onClick={exportToExcel}
                             className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                         >
-                            📥 Export to Excel
+                            <span className="flex items-center space-x-2">
+                                <span>📥</span>
+                                <span>Export to Excel</span>
+                            </span>
                         </button>
                     </div>
                     
@@ -902,7 +978,7 @@ export default function EnhancedReportsAnalyticsNew() {
                         Total Records: {reportStats.totalItems}
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto border rounded-lg">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>

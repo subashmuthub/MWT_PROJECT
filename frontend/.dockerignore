@@ -1,0 +1,24 @@
+# Frontend .dockerignore
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.git
+.gitignore
+README.md
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+*.log
+coverage
+dist
+build
+.cache
+docker-compose.yml
+Dockerfile
+.dockerignore

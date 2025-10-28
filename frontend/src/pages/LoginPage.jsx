@@ -111,9 +111,11 @@ function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="min-h-screen w-full flex flex-col bg-cover bg-center bg-no-repeat relative" style={{backgroundImage: 'url(/Images/Home.jpg)'}}>
+            {/* Background overlay for better readability */}
+            <div className="absolute inset-0 bg-black/40"></div>
             {/* Enhanced Top Navigation Bar */}
-            <nav className="bg-gradient-to-r from-blue-800 via-blue-900 to-purple-900 shadow-2xl">
+            <nav className="bg-gradient-to-r from-blue-800 via-blue-900 to-purple-900 shadow-2xl relative z-10">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-between px-6 py-4">
                         {/* Logo Section */}
@@ -187,7 +189,7 @@ function LoginPage() {
             </nav>
 
             {/* Enhanced Login Section */}
-            <div className="flex-grow flex items-center justify-center p-6 relative">
+            <div className="flex-grow flex items-center justify-center p-6 relative z-10">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
                     <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100"></div>

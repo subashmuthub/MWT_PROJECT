@@ -9,23 +9,23 @@ const { createNotification } = require('../utils/notificationService');
 router.get('/stats', async (req, res) => {
     try {
         const totalLabs = await Lab.count({ where: { is_active: true } });
-        const computerLabs = await Lab.count({ 
-            where: { is_active: true, lab_type: 'computer_lab' } 
+        const cseLabs = await Lab.count({ 
+            where: { is_active: true, lab_type: 'cse' } 
         });
-        const chemistryLabs = await Lab.count({ 
-            where: { is_active: true, lab_type: 'chemistry_lab' } 
+        const eeeLabs = await Lab.count({ 
+            where: { is_active: true, lab_type: 'eee' } 
         });
-        const biologyLabs = await Lab.count({ 
-            where: { is_active: true, lab_type: 'biology_lab' } 
+        const eceLabs = await Lab.count({ 
+            where: { is_active: true, lab_type: 'ece' } 
         });
 
         res.json({
             success: true,
             data: {
                 total: totalLabs,
-                computerLabs,
-                chemistryLabs,
-                biologyLabs
+                cseLabs,
+                eeeLabs,
+                eceLabs
             }
         });
     } catch (error) {
@@ -93,14 +93,17 @@ router.get('/', async (req, res) => {
 
 // POST create new lab
 router.post('/', authenticateToken, async (req, res) => {
+    const {
+        name,
+        lab_type,
+        location,
+        capacity,
+        description,
+        square_feet,
+        lab_seats
+    } = req.body;
+
     try {
-        const {
-            name,
-            lab_type,
-            location,
-            capacity,
-            description
-        } = req.body;
 
         if (!name || !lab_type) {
             return res.status(400).json({
@@ -115,6 +118,8 @@ router.post('/', authenticateToken, async (req, res) => {
             location,
             capacity: capacity ? parseInt(capacity) : null,
             description,
+            square_feet: square_feet ? parseInt(square_feet) : null,
+            lab_seats: lab_seats ? parseInt(lab_seats) : null,
             created_by: req.user.userId
         });
 
@@ -145,6 +150,18 @@ router.post('/', authenticateToken, async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating lab:', error);
+        
+        // Handle specific error types
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            const duplicateField = error.errors[0]?.path;
+            if (duplicateField === 'name') {
+                return res.status(400).json({
+                    success: false,
+                    message: `A lab with the name "${name}" already exists. Please choose a different name.`
+                });
+            }
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Server error',
@@ -155,17 +172,18 @@ router.post('/', authenticateToken, async (req, res) => {
 
 // PUT update lab by ID
 router.put('/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const {
+        name,
+        lab_type,
+        location,
+        capacity,
+        description,
+        square_feet,
+        lab_seats
+    } = req.body;
+
     try {
-        const { id } = req.params;
-        const {
-            name,
-            lab_type,
-            location,
-            capacity,
-            description,
-            square_feet,
-            lab_seats
-        } = req.body;
 
         if (!name || !lab_type) {
             return res.status(400).json({
@@ -223,6 +241,18 @@ router.put('/:id', authenticateToken, async (req, res) => {
         });
     } catch (error) {
         console.error('Error updating lab:', error);
+        
+        // Handle specific error types
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            const duplicateField = error.errors[0]?.path;
+            if (duplicateField === 'name') {
+                return res.status(400).json({
+                    success: false,
+                    message: `A lab with the name "${name}" already exists. Please choose a different name.`
+                });
+            }
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Server error',

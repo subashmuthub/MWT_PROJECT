@@ -131,7 +131,12 @@ const Equipment = sequelize.define('Equipment', {
     accuracy: DataTypes.STRING(100),
     ports: DataTypes.STRING(100),
     speed: DataTypes.STRING(100),
-    protocol: DataTypes.STRING(200)
+    protocol: DataTypes.STRING(200),
+    stock_register_page: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        comment: 'Stock register page number for tracking purposes'
+    }
 }, {
     tableName: 'equipment',
     timestamps: true,

@@ -8,7 +8,7 @@ const sequelize = new Sequelize({
     port: process.env.DB_PORT || 3306,
     database: process.env.DB_NAME || 'lab_management',
     username: process.env.DB_USER || 'root',
-    password: process.env.DB_PASS || '',
+    password: process.env.DB_PASSWORD || process.env.DB_PASS || '',
 
     // Connection pool settings
     pool: {
@@ -19,7 +19,7 @@ const sequelize = new Sequelize({
     },
 
     // Logging
-    logging: console.log, // Set to false to disable SQL query logging
+    logging: process.env.NODE_ENV === 'production' ? false : console.log,
 
     // Other options
     define: {

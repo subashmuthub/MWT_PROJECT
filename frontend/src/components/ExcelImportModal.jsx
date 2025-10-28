@@ -26,172 +26,58 @@ const ExcelImportModal = ({ isOpen, onClose, onImportComplete, labs, token }) =>
         network_equipment: ['name', 'serial_number', 'category', 'lab_id']
     }
 
-    // Generate template data based on available labs
+    // Generate template data in the new format
     const generateSampleData = () => {
-        // Use actual lab IDs if available, otherwise use placeholder
-        const labId = labs && labs.length > 0 ? labs[0].id : 1;
-        
         return [
         {
-            name: 'Dell OptiPlex 7090',
-            description: 'High-performance desktop for CAD work',
-            serial_number: 'DELL-2024-001',
-            model: 'OptiPlex 7090',
-            manufacturer: 'Dell',
-            category: 'computer',
-            lab_id: labId,
-            location_details: 'Room 101 Desk A1',
-            status: 'available',
-            condition_status: 'excellent',
-            purchase_price: 1200,
-            current_value: 950,
-            purchase_date: '2024-01-15',
-            warranty_expiry: '2027-01-15',
-            processor: 'Intel i7-11700',
-            ram: '16GB DDR4',
-            storage: '512GB SSD',
-            graphics_card: 'Intel UHD Graphics',
-            operating_system: 'Windows 11 Pro'
+            'S.No': 1,
+            'Equipments': 'Desktop System',
+            'Make': 'ACER',
+            'System Description': 'Core i5-2320 2nd Gen / 4GB/500GB/18.5"',
+            'Qty': 7,
+            'Cost in Rs': '1,80,250 (7*25,750)',
+            'Date of Purchase': '08.11.2011',
+            'Stock Register Page No': 20
         },
         {
-            name: 'HP EliteBook 840',
-            description: 'Portable laptop for field research',
-            serial_number: 'HP-2024-002',
-            model: 'EliteBook 840 G8',
-            manufacturer: 'HP',
-            category: 'computer',
-            lab_id: labId,
-            location_details: 'Mobile Cart Station B',
-            status: 'available',
-            condition_status: 'good',
-            purchase_price: 1500,
-            current_value: 1200,
-            purchase_date: '2024-02-01',
-            warranty_expiry: '2027-02-01',
-            processor: 'Intel i5-1135G7',
-            ram: '8GB DDR4',
-            storage: '256GB SSD',
-            graphics_card: 'Intel Iris Xe',
-            operating_system: 'Windows 11 Pro'
+            'S.No': 2,
+            'Equipments': 'Pen Tablet',
+            'Make': 'Wacom One',
+            'System Description': 'Wacom One Display Pen Tablet',
+            'Qty': 2,
+            'Cost in Rs': '63,998 (2*31,999)',
+            'Date of Purchase': '28.09.2020',
+            'Stock Register Page No': 37
         },
         {
-            name: 'Epson PowerLite L3150',
-            description: 'Ultra short throw classroom projector',
-            serial_number: 'EPSON-PRJ-001',
-            model: 'PowerLite L3150',
-            manufacturer: 'Epson',
-            category: 'projector',
-            lab_id: labId,
-            location_details: 'Lecture Hall Ceiling Mount',
-            status: 'available',
-            condition_status: 'excellent',
-            purchase_price: 2800,
-            current_value: 2400,
-            purchase_date: '2024-01-20',
-            warranty_expiry: '2027-01-20',
-            resolution: '1920x1080',
-            brightness: '3800 lumens',
-            contrast_ratio: '15000:1',
-            lamp_hours: '245'
+            'S.No': 3,
+            'Equipments': 'Printer',
+            'Make': 'HP',
+            'System Description': 'HP LaserJet – M1005 Printer',
+            'Qty': 1,
+            'Cost in Rs': '12,700',
+            'Date of Purchase': '26.10.2015',
+            'Stock Register Page No': 30
         },
         {
-            name: 'Canon ImageClass MF445dw',
-            description: 'Multifunction laser printer with duplex',
-            serial_number: 'CANON-PRT-001',
-            model: 'ImageClass MF445dw',
-            manufacturer: 'Canon',
-            category: 'printer',
-            lab_id: labId,
-            location_details: 'Main Office Print Station',
-            status: 'available',
-            condition_status: 'good',
-            purchase_price: 350,
-            current_value: 280,
-            purchase_date: '2024-03-01',
-            warranty_expiry: '2025-03-01',
-            print_type: 'Laser',
-            print_speed: '40 ppm',
-            paper_size: 'Letter/Legal',
-            connectivity: 'WiFi+Ethernet'
+            'S.No': 4,
+            'Equipments': 'Projector',
+            'Make': 'BenQ',
+            'System Description': 'Benq Projector LW550',
+            'Qty': 1,
+            'Cost in Rs': '49,664',
+            'Date of Purchase': '01.03.2024',
+            'Stock Register Page No': 44
         },
         {
-            name: 'Nikon Eclipse E200',
-            description: 'Biological microscope for cell studies',
-            serial_number: 'NIKON-MIC-001',
-            model: 'Eclipse E200',
-            manufacturer: 'Nikon',
-            category: 'microscope',
-            lab_id: labId,
-            location_details: 'Biology Lab Bench Station 1',
-            status: 'available',
-            condition_status: 'excellent',
-            purchase_price: 2500,
-            current_value: 2200,
-            purchase_date: '2024-01-10',
-            warranty_expiry: '2026-01-10',
-            magnification: '40x-1000x',
-            objective_lenses: 'Plan Achromat 4x 10x 40x',
-            illumination: 'LED'
-        },
-        {
-            name: 'Autoclave SX-500',
-            description: 'Steam sterilization equipment',
-            serial_number: 'AUTOCLAVE-001',
-            model: 'SX-500',
-            manufacturer: 'Tuttnauer',
-            category: 'lab_equipment',
-            lab_id: labId,
-            location_details: 'Sterilization Room',
-            status: 'available',
-            condition_status: 'excellent',
-            purchase_price: 8500,
-            current_value: 7500,
-            purchase_date: '2024-02-01',
-            warranty_expiry: '2029-02-01',
-            capacity: '50L',
-            power_rating: '2200W',
-            temperature_range: '121-134°C',
-            accuracy: '±1°C'
-        },
-        {
-            name: 'Cisco Catalyst 2960',
-            description: '24-port Ethernet switch',
-            serial_number: 'CISCO-SW-001',
-            model: 'Catalyst 2960-24TT-L',
-            manufacturer: 'Cisco',
-            category: 'network_equipment',
-            lab_id: labId,
-            location_details: 'Server Room Rack A',
-            status: 'available',
-            condition_status: 'excellent',
-            purchase_price: 800,
-            current_value: 600,
-            purchase_date: '2023-10-15',
-            warranty_expiry: '2026-10-15',
-            ports: '24 Ethernet',
-            speed: '100 Mbps',
-            protocol: 'Ethernet'
-        },
-        {
-            name: 'Legacy Desktop PC',
-            description: 'Old desktop computer for basic tasks',
-            serial_number: 'LEGACY-001',
-            model: 'OptiPlex 3020',
-            manufacturer: 'Dell',
-            category: 'computer',
-            lab_id: labId,
-            location_details: 'Storage Room C',
-            status: 'maintenance',
-            condition_status: 'fair',
-            purchase_price: 600,
-            current_value: 150,
-            purchase_date: '2020-03-10',
-            warranty_expiry: '2023-03-10',
-            processor: 'Intel i3-4150',
-            ram: '4GB DDR3',
-            storage: '500GB HDD',
-            graphics_card: 'Intel HD Graphics',
-            operating_system: 'Windows 10'
+            'S.No': 5,
+            'Equipments': 'Interactive Display',
+            'Make': 'BenQ',
+            'System Description': 'Benq Projector Interactive Flat Panel RE 7504',
+            'Qty': 1,
+            'Cost in Rs': '1,46,434',
+            'Date of Purchase': '18.10.2024',
+            'Stock Register Page No': 45
         }
     ]
     }
@@ -261,7 +147,7 @@ const ExcelImportModal = ({ isOpen, onClose, onImportComplete, labs, token }) =>
                     const worksheet = workbook.Sheets[sheetName]
                     
                     // Convert to JSON
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet)
+                    let jsonData = XLSX.utils.sheet_to_json(worksheet)
                     
                     setUploadProgress(80)
                     
@@ -269,6 +155,9 @@ const ExcelImportModal = ({ isOpen, onClose, onImportComplete, labs, token }) =>
                         setError('The Excel file appears to be empty')
                         return
                     }
+
+                    // Transform data to match our database schema
+                    jsonData = transformExcelData(jsonData)
 
                     // Validate data
                     const validation = validateData(jsonData)
@@ -289,6 +178,94 @@ const ExcelImportModal = ({ isOpen, onClose, onImportComplete, labs, token }) =>
         }
     }
 
+    // Transform Excel data to match database schema
+    const transformExcelData = (rawData) => {
+        return rawData.map((row, index) => {
+            // Check if it's the new format (S.No, Equipments, Make, etc.)
+            if (row['S.No'] && row['Equipments'] && row['Make']) {
+                // Parse cost (handle Indian number format with commas)
+                let cost = 0
+                if (row['Cost in Rs']) {
+                    // Extract the main cost amount (first number sequence before parentheses)
+                    // Handle formats like "12,87,475 (25*51,499)" or "63,998 (2*31,999)"
+                    const costStr = String(row['Cost in Rs'])
+                    const match = costStr.match(/^([0-9,]+)/)
+                    if (match) {
+                        const numericPart = match[1].replace(/,/g, '')
+                        cost = parseFloat(numericPart) || 0
+                    }
+                }
+
+                // Parse date (DD.MM.YYYY format)
+                let purchaseDate = null
+                if (row['Date of Purchase']) {
+                    const dateStr = String(row['Date of Purchase'])
+                    const dateParts = dateStr.split('.')
+                    if (dateParts.length === 3) {
+                        // Convert DD.MM.YYYY to YYYY-MM-DD
+                        purchaseDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`
+                    }
+                }
+
+                // Determine category based on equipment type
+                const equipmentType = String(row['Equipments']).toLowerCase()
+                let category = 'lab_equipment' // default
+                if (equipmentType.includes('desktop') || equipmentType.includes('computer')) {
+                    category = 'computer'
+                } else if (equipmentType.includes('projector') || equipmentType.includes('display')) {
+                    category = 'projector'
+                } else if (equipmentType.includes('printer')) {
+                    category = 'printer'
+                } else if (equipmentType.includes('network') || equipmentType.includes('switch')) {
+                    category = 'network_equipment'
+                } else if (equipmentType.includes('microscope')) {
+                    category = 'microscope'
+                }
+
+                // Generate serial number if not provided
+                const serialNumber = `${String(row['Make']).toUpperCase()}-${String(row['S.No']).padStart(3, '0')}-${new Date().getFullYear()}`
+
+                return {
+                    name: row['Equipments'] && row['Make'] ? `${row['Equipments']} ${row['Make']}` : 'Unknown Equipment',
+                    description: row['System Description'] || '',
+                    serial_number: serialNumber,
+                    model: row['System Description'] || '',
+                    manufacturer: row['Make'] || '',
+                    category: category,
+                    lab_id: labs && labs.length > 0 ? labs[0].id : 8, // Use first available lab
+                    location_details: '',
+                    status: 'available',
+                    condition_status: 'good',
+                    purchase_price: Math.floor(cost / (row['Qty'] || 1)), // Divide total cost by quantity
+                    current_value: Math.floor((cost / (row['Qty'] || 1)) * 0.8), // Estimate 80% of per-unit price
+                    purchase_date: purchaseDate,
+                    warranty_expiry: null,
+                    quantity: row['Qty'] || 1,
+                    stock_register_page: row['Stock Register Page No'] || ''
+                }
+            } else {
+                // Original format - return as is but ensure required fields
+                return {
+                    name: row.name || row.Equipments || 'Unknown Equipment',
+                    description: row.description || row['System Description'] || '',
+                    serial_number: row.serial_number || `AUTO-${index + 1}`,
+                    model: row.model || '',
+                    manufacturer: row.manufacturer || row.Make || '',
+                    category: row.category || 'lab_equipment',
+                    lab_id: row.lab_id || (labs && labs.length > 0 ? labs[0].id : 8),
+                    location_details: row.location_details || '',
+                    status: row.status || 'available',
+                    condition_status: row.condition_status || 'good',
+                    purchase_price: row.purchase_price || 0,
+                    current_value: row.current_value || 0,
+                    purchase_date: row.purchase_date || null,
+                    warranty_expiry: row.warranty_expiry || null,
+                    ...row // Include any additional fields
+                }
+            }
+        })
+    }
+
     const validateData = (data) => {
         const results = []
         
@@ -301,7 +278,7 @@ const ExcelImportModal = ({ isOpen, onClose, onImportComplete, labs, token }) =>
                 errors.push('Name is required')
             }
             if (!row.serial_number || row.serial_number.trim() === '') {
-                errors.push('Serial number is required')
+                warnings.push('Serial number will be auto-generated')
             }
             if (!row.category || row.category.trim() === '') {
                 errors.push('Category is required')
@@ -309,10 +286,10 @@ const ExcelImportModal = ({ isOpen, onClose, onImportComplete, labs, token }) =>
                 errors.push(`Invalid category: ${row.category}`)
             }
             if (!row.lab_id) {
-                errors.push('Lab ID is required')
+                warnings.push('Lab ID will default to 1 (can be changed later)')
             } else {
-                const labExists = labs.find(lab => lab.id === parseInt(row.lab_id))
-                if (!labExists) {
+                const labExists = labs && labs.find(lab => lab.id === parseInt(row.lab_id))
+                if (labs && labs.length > 0 && !labExists) {
                     errors.push(`Lab with ID ${row.lab_id} not found`)
                 }
             }
@@ -320,6 +297,7 @@ const ExcelImportModal = ({ isOpen, onClose, onImportComplete, labs, token }) =>
             // Check optional but important fields
             if (!row.manufacturer) warnings.push('Manufacturer not specified')
             if (!row.model) warnings.push('Model not specified')
+            if (!row.description) warnings.push('Description not provided')
 
             // Validate status values
             const validStatuses = ['available', 'in_use', 'maintenance', 'retired']
@@ -334,11 +312,16 @@ const ExcelImportModal = ({ isOpen, onClose, onImportComplete, labs, token }) =>
             }
 
             // Validate dates
-            if (row.purchase_date && isNaN(new Date(row.purchase_date))) {
+            if (row.purchase_date && row.purchase_date !== null && isNaN(new Date(row.purchase_date))) {
                 errors.push('Invalid purchase date format')
             }
             if (row.warranty_expiry && isNaN(new Date(row.warranty_expiry))) {
                 errors.push('Invalid warranty expiry date format')
+            }
+
+            // Validate purchase price
+            if (row.purchase_price && isNaN(parseFloat(row.purchase_price))) {
+                warnings.push('Purchase price should be a number')
             }
 
             results.push({

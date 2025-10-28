@@ -495,6 +495,124 @@ function EditLabModal({ isOpen, onClose, lab, onLabUpdated }) {
     )
 }
 
+// View Lab Modal Component
+function ViewLabModal({ isOpen, onClose, lab }) {
+    if (!isOpen || !lab) return null
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold">Lab Details</h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div className="space-y-6">
+                    {/* Basic Information */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-1">Lab Name</label>
+                                <div className="text-gray-900 font-medium">{lab.name}</div>
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-1">Department</label>
+                                <div className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    {lab.lab_type?.toUpperCase() || 'General'}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-1">Location</label>
+                                <div className="text-gray-900">{lab.location || 'Not specified'}</div>
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-1">Capacity</label>
+                                <div className="text-gray-900">{lab.capacity ? `${lab.capacity} people` : 'Not specified'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Additional Details */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="text-lg font-semibold mb-3">Additional Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {lab.lab_seats && (
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-1">Lab Seats</label>
+                                    <div className="text-gray-900">{lab.lab_seats} seats</div>
+                                </div>
+                            )}
+                            {lab.square_feet && (
+                                <div>
+                                    <label className="block text-gray-700 text-sm font-medium mb-1">Square Feet</label>
+                                    <div className="text-gray-900">{lab.square_feet} sq ft</div>
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-1">Created Date</label>
+                                <div className="text-gray-900">
+                                    {lab.created_at ? new Date(lab.created_at).toLocaleDateString() : 'Unknown'}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-gray-700 text-sm font-medium mb-1">Status</label>
+                                <div className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                    Active
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Description */}
+                    {lab.description && (
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-3">Description</h3>
+                            <p className="text-gray-900">{lab.description}</p>
+                        </div>
+                    )}
+
+                    {/* Lab Creator */}
+                    {lab.labCreator && (
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-3">Created By</h3>
+                            <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <span className="text-white font-medium text-sm">
+                                        {lab.labCreator.name?.charAt(0).toUpperCase() || lab.labCreator.email?.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
+                                <div>
+                                    <div className="text-gray-900 font-medium">
+                                        {lab.labCreator.name || lab.labCreator.email}
+                                    </div>
+                                    <div className="text-gray-500 text-sm">{lab.labCreator.email}</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex justify-end mt-6">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 // Main Lab Management Component
 export default function LabManagement() {
     const [labs, setLabs] = useState([])
@@ -502,6 +620,7 @@ export default function LabManagement() {
     const [error, setError] = useState('')
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false)
     const [selectedLab, setSelectedLab] = useState(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [filterType, setFilterType] = useState('all')
@@ -512,7 +631,7 @@ export default function LabManagement() {
     const [showNotifications, setShowNotifications] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
 
-    const { user, token, logout } = useAuth()
+    const { user, token, logout, loading: authLoading } = useAuth()
     const navigate = useNavigate()
     const location = useLocation()
 
@@ -731,8 +850,9 @@ export default function LabManagement() {
     }
 
     // Handle view lab
-    const handleViewLab = (labId) => {
-        navigate(`/labs/${labId}`)
+    const handleViewLab = (lab) => {
+        setSelectedLab(lab)
+        setIsViewModalOpen(true)
     }
 
     // Navigation functions
@@ -774,12 +894,28 @@ export default function LabManagement() {
         document.title = 'Lab Management | NEC LabMS'
         
         const loadData = async () => {
+            if (!token) return // Don't fetch if no token
             setLoading(true)
             await fetchLabs()
             setLoading(false)
         }
         loadData()
-    }, [])
+    }, [token]) // Add token as dependency
+
+    // Show loading while auth is initializing
+    if (authLoading) {
+        return (
+            <div className="min-h-screen w-full bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="relative">
+                        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
+                        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent absolute top-0"></div>
+                    </div>
+                    <p className="text-gray-600 mt-4 font-medium">Initializing...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) {
         return (
@@ -1135,7 +1271,7 @@ export default function LabManagement() {
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex space-x-3">
                                                             <button
-                                                                onClick={() => handleViewLab(lab.id)}
+                                                                onClick={() => handleViewLab(lab)}
                                                                 className="text-blue-600 hover:text-blue-900"
                                                             >
                                                                 View
@@ -1188,6 +1324,16 @@ export default function LabManagement() {
                     />
                 </>
             )}
+
+            {/* View Lab Modal - Available to all users */}
+            <ViewLabModal
+                isOpen={isViewModalOpen}
+                onClose={() => {
+                    setIsViewModalOpen(false)
+                    setSelectedLab(null)
+                }}
+                lab={selectedLab}
+            />
         </div>
     )
 }

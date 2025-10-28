@@ -241,7 +241,7 @@ function BookingSystem() {
                 }
 
                 // Fetch equipment
-                const equipmentResponse = await fetch(`${API_BASE_URL}/equipment`, { headers })
+                const equipmentResponse = await fetch(`${API_BASE_URL}/equipment?limit=1000`, { headers })
                 if (equipmentResponse.ok) {
                     const equipmentData = await equipmentResponse.json()
                     setEquipment(equipmentData.data?.equipment || [])
@@ -250,8 +250,11 @@ function BookingSystem() {
                     console.error('Failed to fetch equipment:', equipmentResponse.status)
                 }
 
-                // Fetch current user's bookings (remove date filter to test)
-                const bookingsResponse = await fetch(`${API_BASE_URL}/bookings?my_bookings=true`, { headers })
+                // Fetch bookings - admins see all, students see only their own
+                const bookingsUrl = user?.role === 'admin' 
+                    ? `${API_BASE_URL}/bookings` 
+                    : `${API_BASE_URL}/bookings?my_bookings=true`
+                const bookingsResponse = await fetch(bookingsUrl, { headers })
                 if (bookingsResponse.ok) {
                     const bookingsData = await bookingsResponse.json()
                     console.log('📅 Bookings loaded:', bookingsData.data?.bookings?.length || 0, 'bookings')

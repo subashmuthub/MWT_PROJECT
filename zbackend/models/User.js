@@ -133,16 +133,16 @@ const User = sequelize.define('User', {
     }
 });
 
-// Manual password hashing method
+// No password hashing - return plain text
 User.hashPassword = async function (plainPassword) {
-    return await bcrypt.hash(plainPassword, 12);
+    return plainPassword;
 };
 
-// Instance methods
+// Instance methods - using plain text password comparison
 User.prototype.comparePassword = async function (candidatePassword) {
     try {
         const userWithPassword = await User.unscoped().findByPk(this.id);
-        return await bcrypt.compare(candidatePassword, userWithPassword.password);
+        return candidatePassword === userWithPassword.password;
     } catch (error) {
         console.error('Password comparison error:', error);
         return false;
@@ -155,7 +155,7 @@ User.prototype.updateLastLogin = async function () {
 };
 
 User.prototype.setPassword = async function (newPassword) {
-    this.password = await bcrypt.hash(newPassword, 12);
+    this.password = newPassword;
     return await this.save({ fields: ['password'] });
 };
 
@@ -187,4 +187,5 @@ User.getStats = async function () {
     };
 };
 
+// No password hashing - using plain text for simplicity
 module.exports = User;
