@@ -521,7 +521,7 @@ function ViewLabModal({ isOpen, onClose, lab }) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-gray-700 text-sm font-medium mb-1">Lab Name</label>
-                                <div className="text-gray-900 font-medium">{lab.name}</div>
+                                <div className="text-gray-900 font-medium">{lab?.name || 'N/A'}</div>
                             </div>
                             <div>
                                 <label className="block text-gray-700 text-sm font-medium mb-1">Department</label>
@@ -591,9 +591,9 @@ function ViewLabModal({ isOpen, onClose, lab }) {
                                 </div>
                                 <div>
                                     <div className="text-gray-900 font-medium">
-                                        {lab.labCreator.name || lab.labCreator.email}
+                                        {lab?.labCreator?.name || lab?.labCreator?.email || 'Unknown'}
                                     </div>
-                                    <div className="text-gray-500 text-sm">{lab.labCreator.email}</div>
+                                    <div className="text-gray-500 text-sm">{lab?.labCreator?.email || 'N/A'}</div>
                                 </div>
                             </div>
                         </div>
@@ -879,7 +879,9 @@ export default function LabManagement() {
 
     // Filter labs based on search and type
     const filteredLabs = labs.filter(lab => {
-        const matchesSearch = lab.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        if (!lab) return false
+        
+        const matchesSearch = lab.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lab.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lab.description?.toLowerCase().includes(searchTerm.toLowerCase())
 
@@ -1240,9 +1242,9 @@ export default function LabManagement() {
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div>
                                                             <div className="text-sm font-medium text-gray-900">
-                                                                {lab.name}
+                                                                {lab?.name || 'N/A'}
                                                             </div>
-                                                            {lab.description && (
+                                                            {lab?.description && (
                                                                 <div className="text-sm text-gray-500 truncate max-w-xs">
                                                                     {lab.description}
                                                                 </div>
