@@ -1,2 +1,38 @@
-node_modules
+# Environment variables
 .env
+.env.local
+.env.production
+.env.*.local
+.env.railway.local
+
+# Dependencies
+node_modules/
+
+# Uploads and temporary files
+uploads/
+temp/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test coverage
+coverage/
+
+# Build output
+dist/
+build/

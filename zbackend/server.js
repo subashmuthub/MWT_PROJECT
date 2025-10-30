@@ -12,33 +12,8 @@ console.log('📦 Loading models and associations...');
 require('./models'); // This executes models/index.js and sets up all associations
 console.log('✅ Models and associations loaded');
 
-// Middleware - CORS Configuration for Production
-const corsOptions = {
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-        
-        const allowedOrigins = [
-            'http://localhost:5173',
-            'http://localhost:3000',
-            'https://labms-a8a5xj2w5-subashs-projects-d775d590.vercel.app',
-            'https://labms-.vercel.app',
-            process.env.FRONTEND_URL,
-        ];
-        
-        if (origin.endsWith('.vercel.app') || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.log('⚠️ CORS blocked origin:', origin);
-            callback(null, true); // Allow all for now
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
-app.use(cors(corsOptions));
-
+// Middleware
+app.use(cors());
 // Increase payload limits for image uploads (10MB limit)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
